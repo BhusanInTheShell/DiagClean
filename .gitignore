@@ -1,0 +1,26 @@
+## .NET
+bin/
+obj/
+*.user
+*.suo
+
+## Publish output
+publish/
+*.zip
+
+## Rider / VS / VS Code
+.vs/
+.vscode/
+.idea/
+*.DotSettings.user
+
+## OS
+.DS_Store
+Thumbs.db
+
+## Logs produced by the app itself
+*.log
+logs/
+
+## Test results
+TestResults/
