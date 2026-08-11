@@ -31,9 +31,12 @@ public sealed class PerformanceCollector : IPerformanceCollector
             Thread.Sleep(500);
             return cpuCounter.NextValue();
         }
-        catch (Exception ex) when (ex is InvalidOperationException or UnauthorizedAccessException)
+        catch (Exception ex) when (
+            ex is InvalidOperationException or UnauthorizedAccessException or System.ComponentModel.Win32Exception)
         {
-            // Performance counters can be disabled or corrupted by group policy on locked-down machines.
+            // Performance counters can be disabled, corrupted, or have their backing registry
+            // keys locked down by group policy - all of which surface as Win32Exception from
+            // the counter constructor itself, not just from NextValue().
             return 0;
         }
     }

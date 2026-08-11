@@ -1,4 +1,5 @@
 using DiagClean.Core.Models;
+using DiagClean.Core.Reporting;
 using Spectre.Console;
 
 namespace DiagClean.Cli.Screens;
@@ -71,13 +72,18 @@ public static class MainMenuScreen
             return;
         }
 
+        var format = AnsiConsole.Prompt(
+            new SelectionPrompt<ReportFormat>()
+                .Title("Report format?")
+                .AddChoices(ReportFormat.Html, ReportFormat.Pdf, ReportFormat.Both));
+
         AppPaths.EnsureDataDirectories();
         var service = Composition.CreateDiagnosticService();
-        var path = DiagnosticScreen.Run(service, outputPathOverride: null);
+        var paths = DiagnosticScreen.Run(service, format, outputPathOverride: null);
 
-        if (AnsiConsole.Confirm("Open the report now?"))
+        if (paths.Count > 0 && AnsiConsole.Confirm("Open the report now?"))
         {
-            TryOpen(path);
+            TryOpen(paths[0]);
         }
     }
 

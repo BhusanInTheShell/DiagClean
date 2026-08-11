@@ -4,8 +4,8 @@ A single, focused utility for Windows helpdesk / IT support technicians. Two mod
 
 1. **Diagnostic Collector** — one pass to gather hardware, disk health/SMART, recent
    Event Log errors, installed software, network config, and a performance snapshot,
-   written out as a clean, self-contained HTML report you can email or attach to a
-   ticket.
+   written out as a clean, self-contained HTML report (and/or PDF) you can email or
+   attach to a ticket.
 2. **Quick Clean + Optimise** — safety-first cleanup of temp files, browser caches,
    Windows Update leftovers, and orphaned installer files. Always previews in dry-run
    first, always requires explicit confirmation before deleting anything, and logs
@@ -17,6 +17,10 @@ A single, focused utility for Windows helpdesk / IT support technicians. Two mod
   and the registry are first-class, strongly-typed APIs here, avoiding brittle
   shell-out-and-parse approaches.
 - **Spectre.Console** — the interactive terminal UI (tables, progress bars, prompts).
+- **QuestPDF** — PDF export, pure .NET with no external process dependency (no headless
+  browser or wkhtmltopdf binary to ship), which keeps the single-exe story intact. Runs
+  under the free Community license (see [questpdf.com/license](https://www.questpdf.com/license/) —
+  revisit if this is ever deployed beyond a small team/company).
 - Publishes as a single self-contained `.exe` — no .NET runtime install needed on the
   target machine.
 
@@ -29,7 +33,7 @@ src/
     Cleaning/          Clean targets (temp, browser cache, Windows Update, installers)
     Safety/            PathGuard (whitelist enforcement) + DryRunEngine (the only
                         place that deletes anything)
-    Reporting/         Self-contained HTML report renderer
+    Reporting/         Self-contained HTML and PDF report renderers
     Models/            DTOs shared across the above
   DiagClean.Cli/       Spectre.Console entry point (interactive menu + `diag`/`clean` CLI commands)
   DiagClean.Tests/     xUnit tests for Core, using a fake filesystem (no real disk access)
@@ -64,8 +68,11 @@ dotnet run --project src/DiagClean.Cli
 Scripted / RMM use:
 
 ```bash
-# Diagnostic report to a specific path
+# Diagnostic report to a specific path (HTML by default)
 dotnet run --project src/DiagClean.Cli -- diag --output C:\reports\machine1.html
+
+# PDF instead - or --format both for HTML and PDF side by side
+dotnet run --project src/DiagClean.Cli -- diag --format pdf --output C:\reports\machine1.pdf
 
 # Preview only, no deletion
 dotnet run --project src/DiagClean.Cli -- clean --preset quick --dry-run
@@ -126,7 +133,10 @@ This was developed and unit-tested on macOS, so the Windows-only APIs (WMI SMART
 predictions, Event Log message formatting, registry-based software inventory) are
 implemented against the documented behavior but have not been exercised against a real
 Windows machine yet. Everything platform-agnostic (PathGuard, DryRunEngine, the HTML
-report, the clean-target scanning logic, the CLI shell) is covered by the test suite
-and verified. Before relying on this for live helpdesk work, run a full smoke test on
-a real Windows box — particularly the SMART status matching in `DiskHealthCollector`
-and the Event Log queries in `EventLogCollector`/`PerformanceCollector`.
+and PDF report builders, the clean-target scanning logic, the CLI shell) is covered by
+the test suite and verified — PDF export in particular generates and validates real
+PDF bytes in tests, since QuestPDF's rendering engine is pure .NET and runs the same on
+any OS. Before relying on this for live helpdesk work, run through
+[SMOKE_TEST.md](SMOKE_TEST.md) on a real Windows box — particularly the SMART status
+matching in `DiskHealthCollector` and the Event Log queries in
+`EventLogCollector`/`PerformanceCollector`.

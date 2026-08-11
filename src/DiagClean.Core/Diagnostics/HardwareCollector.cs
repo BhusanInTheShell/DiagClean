@@ -18,56 +18,44 @@ public sealed class HardwareCollector : IHardwareCollector
         var bios = "";
         var gpus = new List<string>();
 
-        using (var searcher = new ManagementObjectSearcher(
-            "SELECT Name, NumberOfCores, NumberOfLogicalProcessors FROM Win32_Processor"))
+        // Each WMI class is queried independently and failures are swallowed per-query -
+        // some classes (Win32_VideoController in particular) are known to fail on headless
+        // servers and certain hypervisors. One flaky class shouldn't discard the CPU/RAM/
+        // motherboard data already gathered from the others.
+        RunQuery("SELECT Name, NumberOfCores, NumberOfLogicalProcessors FROM Win32_Processor", mo =>
         {
-            foreach (ManagementBaseObject mo in searcher.Get())
-            {
-                cpuName = mo["Name"]?.ToString()?.Trim() ?? cpuName;
-                cores += ToInt(mo["NumberOfCores"]);
-                logical += ToInt(mo["NumberOfLogicalProcessors"]);
-            }
-        }
+            cpuName = mo["Name"]?.ToString()?.Trim() ?? cpuName;
+            cores += ToInt(mo["NumberOfCores"]);
+            logical += ToInt(mo["NumberOfLogicalProcessors"]);
+        });
 
-        using (var searcher = new ManagementObjectSearcher("SELECT TotalPhysicalMemory FROM Win32_ComputerSystem"))
+        RunQuery("SELECT TotalPhysicalMemory FROM Win32_ComputerSystem", mo =>
         {
-            foreach (ManagementBaseObject mo in searcher.Get())
+            if (mo["TotalPhysicalMemory"] is not null)
             {
-                if (mo["TotalPhysicalMemory"] is not null)
-                {
-                    ramGb = Convert.ToDouble(mo["TotalPhysicalMemory"]) / (1024d * 1024 * 1024);
-                }
+                ramGb = Convert.ToDouble(mo["TotalPhysicalMemory"]) / (1024d * 1024 * 1024);
             }
-        }
+        });
 
-        using (var searcher = new ManagementObjectSearcher("SELECT Manufacturer, Product FROM Win32_BaseBoard"))
+        RunQuery("SELECT Manufacturer, Product FROM Win32_BaseBoard", mo =>
         {
-            foreach (ManagementBaseObject mo in searcher.Get())
-            {
-                mbManufacturer = mo["Manufacturer"]?.ToString() ?? "";
-                mbModel = mo["Product"]?.ToString() ?? "";
-            }
-        }
+            mbManufacturer = mo["Manufacturer"]?.ToString() ?? "";
+            mbModel = mo["Product"]?.ToString() ?? "";
+        });
 
-        using (var searcher = new ManagementObjectSearcher("SELECT SMBIOSBIOSVersion FROM Win32_BIOS"))
+        RunQuery("SELECT SMBIOSBIOSVersion FROM Win32_BIOS", mo =>
         {
-            foreach (ManagementBaseObject mo in searcher.Get())
-            {
-                bios = mo["SMBIOSBIOSVersion"]?.ToString() ?? "";
-            }
-        }
+            bios = mo["SMBIOSBIOSVersion"]?.ToString() ?? "";
+        });
 
-        using (var searcher = new ManagementObjectSearcher("SELECT Name FROM Win32_VideoController"))
+        RunQuery("SELECT Name FROM Win32_VideoController", mo =>
         {
-            foreach (ManagementBaseObject mo in searcher.Get())
+            var name = mo["Name"]?.ToString();
+            if (!string.IsNullOrWhiteSpace(name))
             {
-                var name = mo["Name"]?.ToString();
-                if (!string.IsNullOrWhiteSpace(name))
-                {
-                    gpus.Add(name);
-                }
+                gpus.Add(name);
             }
-        }
+        });
 
         return new HardwareInfo
         {
@@ -80,6 +68,23 @@ public sealed class HardwareCollector : IHardwareCollector
             BiosVersion = bios,
             GpuNames = gpus
         };
+    }
+
+    private static void RunQuery(string wql, Action<ManagementBaseObject> onEach)
+    {
+        try
+        {
+            using var searcher = new ManagementObjectSearcher(wql);
+            foreach (ManagementBaseObject mo in searcher.Get())
+            {
+                onEach(mo);
+            }
+        }
+        catch (ManagementException)
+        {
+            // This particular WMI class is unavailable/unsupported on this machine - the
+            // fields it would have populated are left at their defaults.
+        }
     }
 
     private static int ToInt(object? value) => value is null ? 0 : Convert.ToInt32(value);

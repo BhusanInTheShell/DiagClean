@@ -64,9 +64,14 @@ public sealed class SoftwareInventoryCollector : ISoftwareInventoryCollector
                     });
                 }
             }
-            catch (System.Security.SecurityException)
+            catch (Exception ex) when (ex is System.Security.SecurityException or UnauthorizedAccessException)
             {
-                // Insufficient rights to read this hive/subkey on this machine - skip it.
+                // Insufficient rights to read this hive/subkey on this machine - skip just this
+                // root and keep the results already gathered from the others. Modern .NET
+                // registry APIs throw UnauthorizedAccessException for access-denied far more
+                // often than the legacy SecurityException, so both must be caught here -
+                // otherwise one restricted hive (common under corporate GPO) would discard
+                // every result already collected from the roots processed before it.
             }
         }
 

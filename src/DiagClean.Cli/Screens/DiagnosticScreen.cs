@@ -6,7 +6,9 @@ namespace DiagClean.Cli.Screens;
 
 public static class DiagnosticScreen
 {
-    public static string Run(DiagnosticCollectorService service, string? outputPathOverride)
+    /// <returns>The report file(s) written - one path for Html/Pdf, two for Both.</returns>
+    public static IReadOnlyList<string> Run(
+        DiagnosticCollectorService service, ReportFormat format, string? outputPathOverride)
     {
         Core.Models.DiagnosticReport? report = null;
 
@@ -18,21 +20,40 @@ public static class DiagnosticScreen
                 report = service.Collect(Environment.UserName);
             });
 
-        var html = HtmlReportBuilder.Build(report!);
+        var basePath = outputPathOverride is null
+            ? Path.Combine(
+                AppPaths.ReportsDirectory,
+                $"DiagClean-Report-{Sanitize(report!.MachineName)}-{report.GeneratedAt:yyyyMMdd-HHmmss}")
+            : Path.Combine(
+                Path.GetDirectoryName(Path.GetFullPath(outputPathOverride)) ?? ".",
+                Path.GetFileNameWithoutExtension(outputPathOverride));
 
-        var outputPath = outputPathOverride ?? Path.Combine(
-            AppPaths.ReportsDirectory,
-            $"DiagClean-Report-{Sanitize(report!.MachineName)}-{report.GeneratedAt:yyyyMMdd-HHmmss}.html");
-
-        var directory = Path.GetDirectoryName(Path.GetFullPath(outputPath));
+        var directory = Path.GetDirectoryName(Path.GetFullPath(basePath));
         if (!string.IsNullOrEmpty(directory))
         {
             Directory.CreateDirectory(directory);
         }
 
-        File.WriteAllText(outputPath, html);
+        var written = new List<string>();
 
-        AnsiConsole.MarkupLine($"[green]Report written to[/] [underline]{Markup.Escape(outputPath)}[/]");
+        if (format is ReportFormat.Html or ReportFormat.Both)
+        {
+            var htmlPath = basePath + ".html";
+            File.WriteAllText(htmlPath, HtmlReportBuilder.Build(report!));
+            written.Add(htmlPath);
+        }
+
+        if (format is ReportFormat.Pdf or ReportFormat.Both)
+        {
+            var pdfPath = basePath + ".pdf";
+            File.WriteAllBytes(pdfPath, PdfReportBuilder.Build(report!));
+            written.Add(pdfPath);
+        }
+
+        foreach (var path in written)
+        {
+            AnsiConsole.MarkupLine($"[green]Report written to[/] [underline]{Markup.Escape(path)}[/]");
+        }
 
         if (report!.CollectorErrors.Count > 0)
         {
@@ -44,7 +65,7 @@ public static class DiagnosticScreen
             }
         }
 
-        return outputPath;
+        return written;
     }
 
     private static string Sanitize(string name)
