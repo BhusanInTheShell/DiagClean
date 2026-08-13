@@ -66,6 +66,28 @@ Run `.\dclean.exe diag` (or the menu option) and open the resulting HTML report.
 - [ ] Confirm your Desktop, Documents, Pictures files are untouched after every run
       above - this is the one that must never fail.
 
+## Uninstall module
+
+**Use a disposable/test VM for this section, not your real machine** - unlike Clean,
+this has never run against a real Windows install at all (the whole Windows Uninstall
+path is unverified; the macOS side has real live test coverage, see below).
+
+- [ ] `dclean.exe uninstall --dry-run` - confirm it lists real installed apps (matches
+      "Apps & Features" roughly) with plausible sizes; after selecting some, it should
+      just print that list back and stop (no leftover scan, no vendor uninstaller
+      launched - dry-run isn't meaningful for a step that launches an external process).
+- [ ] Install a small, disposable test app (anything with a normal uninstaller - 7-Zip,
+      a portable tool with an NSIS/InnoSetup installer, etc.), then select it in
+      `dclean.exe uninstall` and confirm.
+- [ ] Confirm the app's own uninstaller actually launches and you can complete it
+      normally - DiagClean waits for it to exit rather than doing anything silent.
+- [ ] After the vendor uninstaller finishes, confirm DiagClean scans for and offers to
+      clean leftover `%APPDATA%`/`%LOCALAPPDATA%`/`%PROGRAMDATA%` folders matching the
+      app's name, and that confirming actually removes them.
+- [ ] Try selecting an app whose `UninstallString` needs elevation - confirm the UAC
+      prompt appears (via `UseShellExecute = true`) rather than silently failing.
+- [ ] Confirm `%LOCALAPPDATA%\DiagClean\logs\uninstall-<date>.log` was written.
+
 ## If something's off
 
 The most likely failure points, in order of likelihood:
@@ -80,3 +102,8 @@ The most likely failure points, in order of likelihood:
 3. Free-space-per-physical-disk in `DiskHealthCollector.SumFreeSpaceForDrive` - dynamic
    disks or Storage Spaces volumes may not associate cleanly through
    `Win32_DiskPartition`/`Win32_LogicalDisk`.
+4. `WindowsAppUninstaller.ParseCommandLine` (`src/DiagClean.Core/Uninstall/Windows/WindowsAppUninstaller.cs`) -
+   `UninstallString` registry values are free-form text; the quoted-path parsing is
+   unit-tested against a few known formats but real-world installers are inconsistent.
+   If launching an uninstaller fails outright, check what the raw `UninstallString` for
+   that app actually looks like against what `ParseCommandLine` expects.

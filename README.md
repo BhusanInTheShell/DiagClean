@@ -12,11 +12,12 @@
 
 ## Features
 
-- **Two tools, one binary**: a full diagnostic report and a safety-first cleanup utility, in the same interactive menu
+- **Three tools, one binary**: a full diagnostic report, a safety-first cleanup utility, and an app uninstaller with leftover-file cleanup, in the same interactive menu
 - **One-pass diagnostics**: hardware, disk health/SMART, recent system log errors, installed software, network config, and a performance snapshot — out as a self-contained **HTML and/or PDF** report you can attach to a ticket
 - **Safety-first cleanup**: temp files, browser caches, and OS-specific bloat, always previewed in **dry-run** before anything is deleted
+- **Uninstall with leftovers**: removes an app plus its caches, preferences, logs, and containers - moved to Trash/Recycle Bin (recoverable), not permanently deleted
 - **Cross-platform by design**: Windows (WMI/Event Log/Registry) and macOS (`system_profiler`/`diskutil`/`log show`) share one CLI and report format
-- **Audit trail**: every clean run is logged — what was scanned, what was deleted, what failed and why
+- **Audit trail**: every clean/uninstall run is logged — what was scanned, what was touched, what failed and why
 
 ## Quick Start
 
@@ -45,6 +46,7 @@ dclean diag                                  # Diagnostic report (HTML by defaul
 dclean diag --format pdf                     # ...or PDF, or --format both
 dclean clean --preset quick --dry-run        # Preview only, nothing deleted
 dclean clean --preset deep --yes             # Unattended, skips confirmation
+dclean uninstall --dry-run                   # Pick apps, preview what would be removed
 
 dclean diag --output ~/reports/machine1.html # Diagnostic report to a specific path
 dclean --help                                # Show all commands
@@ -101,24 +103,59 @@ Dry-run is the only path in the code that can lead to a delete — there's no fl
 skips the preview. Confirm with `DELETE` (interactive) or `--yes` (scripted) to actually
 free the space.
 
+### Uninstall (remove apps + leftovers)
+
+```
+$ dclean uninstall
+
+Select apps to remove
+▶ ☐ Xcode (4111 MB) | Old
+  ☐ Android Studio (3051 MB) | Recent
+  ☐ Accelerate (14 MB) | Old
+
+     Preview - nothing has been removed yet
+╭───────────┬────────────────┬───────────────┬──────────╮
+│ App       │ Leftover Items │ Leftover Size │ App Size │
+├───────────┼────────────────┼───────────────┼──────────┤
+│ Accelerate│              4 │        3.0 MB │    14 MB │
+╰───────────┴────────────────┴───────────────┴──────────╯
+
+1 app(s) plus 4 leftover items, 17 MB would be freed (moved to Trash, not permanently deleted).
+```
+
+On macOS, the app bundle and every matched leftover (Containers, Group Containers,
+Caches, Preferences, Saved Application State, Logs, LaunchAgents) move to `~/.Trash` -
+recoverable, unlike Clean's permanent deletion of regenerable cache/temp junk, since
+removing the wrong app is a much higher-stakes mistake. Apps unused for 30+ days are
+pre-checked in the picker as a nudge toward removing things you've actually stopped
+using; recently-used apps start unchecked.
+
+On Windows, there's no equivalent of "move the bundle to Trash" that leaves the system
+consistent - removing a Program Files folder without running the vendor's own
+uninstaller leaves orphaned registry entries, services, and shortcuts. So each selected
+app's own registered uninstaller launches first (interactively, one at a time); leftover
+`%APPDATA%`/`%LOCALAPPDATA%`/`%PROGRAMDATA%` residue is then scanned and cleaned as a
+separate step afterward.
+
 ## Platform support
 
 | | Windows | macOS |
 |---|---|---|
 | Diagnostic collectors | WMI, Event Log, Registry | `system_profiler`, `diskutil`, `sysctl`, unified log (`log show`) |
 | Clean targets | Temp, Browser Cache, Windows Update, Installer Leftovers | Temp, Browser Cache, System Caches (`~/Library/Caches`) |
+| Uninstall | Vendor uninstaller + AppData leftover cleanup | Move app + Library leftovers to Trash |
 | Distribution | Portable `.exe` (zip), winget PR pending review | Homebrew tap, portable tarball |
 
 Linux isn't supported yet — the architecture (interface-based collectors/targets
 selected by a factory) is there to add it the same way macOS was added.
 
-## Safety model (Clean module)
+## Safety model
 
-- **Dry-run first, always.** There is no code path that deletes without either an
-  explicit `--yes` flag (scripted use) or a typed `DELETE` confirmation (interactive
-  use).
+- **Dry-run first, always.** There is no code path that deletes/removes anything
+  without either an explicit `--yes` flag (scripted use) or a typed `DELETE`
+  confirmation (interactive use).
 - **Two independent checks before any delete**: every path must (1) fall under a
-  narrow, hardcoded "allowed roots" list specific to that clean category, and (2) not
+  narrow, hardcoded "allowed roots" list specific to that operation, and (2) not
   match a protected path — built-in (Desktop, Documents, Pictures, Videos, Music) plus
   anything you add in `appsettings.json`. Both checks run again immediately before
   deletion, not just at scan time, in case the scan is stale by the time it's confirmed.
@@ -126,9 +163,14 @@ selected by a factory) is there to add it the same way macOS was added.
   Windows uses for repair/uninstall of installed software. Identifying orphaned entries
   safely requires cross-referencing the MSI product database; getting it wrong breaks
   uninstall/repair for real software, which is worse than leaving a few MB behind.
-- **Every clean run is logged** to the platform's app-data directory
+- **Uninstall is recoverable, not permanent.** Removing an app is a much higher-stakes
+  mistake than deleting regenerable cache/temp junk, so on macOS the app and its
+  leftovers move to `~/.Trash` rather than being deleted outright. On Windows, the app
+  itself is never touched directly at all - only its own registered uninstaller can
+  remove it consistently (no orphaned registry entries/services/shortcuts).
+- **Every clean/uninstall run is logged** to the platform's app-data directory
   (`%LOCALAPPDATA%\DiagClean\logs\` on Windows, `~/Library/Application Support/DiagClean/logs/`
-  on macOS) — what was scanned, what was deleted, what failed and why.
+  on macOS) — what was scanned, what was touched, what failed and why.
 
 ## Configuration
 
@@ -184,11 +226,14 @@ src/
     Cleaning/          Clean targets (temp, browser cache, Windows Update,
                         installers, system caches), OS-branching factory
     Safety/            PathGuard (whitelist enforcement) + DryRunEngine (the only
-                        place that deletes anything)
+                        place Clean deletes anything)
+    Uninstall/         App lister + uninstaller interfaces, Mac (Trash-move) and
+                        Windows (vendor uninstaller + leftover cleanup) implementations
     Reporting/         Self-contained HTML and PDF report renderers
     Shell/             Process-execution helper the Mac collectors shell out through
+    Shared/            Filesystem scan helpers shared by Cleaning and Uninstall
     Models/            DTOs shared across the above
-  DiagClean.Cli/       Spectre.Console entry point (interactive menu + `diag`/`clean` CLI commands)
+  DiagClean.Cli/       Spectre.Console entry point (interactive menu + `diag`/`clean`/`uninstall` CLI commands)
   DiagClean.Tests/     xUnit tests - fake-filesystem unit tests plus live tests that
                         run the real macOS collectors/targets against this machine
 ```

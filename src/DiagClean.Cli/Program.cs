@@ -27,6 +27,11 @@ app.Configure(config =>
         .WithDescription("Scan and clean temp files, browser caches, and Windows Update leftovers.")
         .WithExample("clean", "--preset", "quick", "--dry-run")
         .WithExample("clean", "--preset", "deep", "--yes");
+
+    config.AddCommand<UninstallCommand>("uninstall")
+        .WithDescription("Remove apps and their leftover files (caches, preferences, logs).")
+        .WithExample("uninstall", "--dry-run")
+        .WithExample("uninstall", "--yes");
 });
 
 return app.Run(args);

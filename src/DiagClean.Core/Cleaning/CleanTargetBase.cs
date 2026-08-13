@@ -1,6 +1,7 @@
 using System.IO.Abstractions;
 using DiagClean.Core.Models;
 using DiagClean.Core.Safety;
+using DiagClean.Core.Shared;
 
 namespace DiagClean.Core.Cleaning;
 
@@ -60,7 +61,7 @@ public abstract class CleanTargetBase
                 {
                     FullPath = path,
                     Category = category,
-                    SizeBytes = DirectorySize(path),
+                    SizeBytes = FileSystemScanHelpers.DirectorySize(FileSystem, path),
                     IsDirectory = true
                 };
             }
@@ -85,56 +86,9 @@ public abstract class CleanTargetBase
         return null;
     }
 
-    private long DirectorySize(string path)
-    {
-        long total = 0;
-        try
-        {
-            foreach (var file in FileSystem.Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories))
-            {
-                try
-                {
-                    total += FileSystem.FileInfo.New(file).Length;
-                }
-                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-                {
-                    // Skip individual locked/inaccessible files when sizing a directory.
-                }
-            }
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-        {
-            // Directory became inaccessible mid-enumeration - report what we have.
-        }
+    protected IEnumerable<string> SafeGetDirectories(string root, string searchPattern = "*") =>
+        FileSystemScanHelpers.SafeGetDirectories(FileSystem, root, searchPattern);
 
-        return total;
-    }
-
-    protected IEnumerable<string> SafeGetDirectories(string root, string searchPattern = "*")
-    {
-        try
-        {
-            return FileSystem.Directory.Exists(root)
-                ? FileSystem.Directory.GetDirectories(root, searchPattern)
-                : [];
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-        {
-            return [];
-        }
-    }
-
-    protected IEnumerable<string> SafeGetFiles(string root, string searchPattern = "*")
-    {
-        try
-        {
-            return FileSystem.Directory.Exists(root)
-                ? FileSystem.Directory.GetFiles(root, searchPattern)
-                : [];
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-        {
-            return [];
-        }
-    }
+    protected IEnumerable<string> SafeGetFiles(string root, string searchPattern = "*") =>
+        FileSystemScanHelpers.SafeGetFiles(FileSystem, root, searchPattern);
 }

@@ -2,6 +2,7 @@ using System.IO.Abstractions;
 using DiagClean.Core.Cleaning;
 using DiagClean.Core.Diagnostics;
 using DiagClean.Core.Diagnostics.Mac;
+using DiagClean.Core.Uninstall;
 
 namespace DiagClean.Cli;
 
@@ -40,5 +41,12 @@ public static class Composition
     {
         IFileSystem fileSystem = new FileSystem();
         return CleanTargetFactory.CreateDefaultTargets(fileSystem, settings.ProtectedPaths);
+    }
+
+    public static (IAppLister Lister, IAppUninstaller Uninstaller) CreateUninstall()
+    {
+        var settings = AppSettingsModel.Load(AppPaths.SettingsFilePath);
+        IFileSystem fileSystem = new FileSystem();
+        return UninstallFactory.Create(fileSystem, settings.ProtectedPaths);
     }
 }
