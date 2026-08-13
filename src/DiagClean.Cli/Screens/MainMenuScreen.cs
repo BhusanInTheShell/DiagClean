@@ -1,4 +1,5 @@
 using DiagClean.Core.Models;
+using DiagClean.Core.Optimize;
 using DiagClean.Core.Reporting;
 using DiagClean.Core.Uninstall;
 using Spectre.Console;
@@ -13,6 +14,7 @@ public static class MainMenuScreen
     private const string DeepCleanMac = "Deep Clean (+ system caches)";
     private const string CustomClean = "Custom Clean (choose categories)";
     private const string Uninstall = "Uninstall (remove apps + leftovers)";
+    private const string Optimize = "Optimize (refresh caches + services)";
     private const string Settings = "Settings";
     private const string Exit = "Exit";
 
@@ -27,7 +29,8 @@ public static class MainMenuScreen
             var choice = AnsiConsole.Prompt(
                 new SelectionPrompt<string>()
                     .Title("What would you like to do?")
-                    .AddChoices(RunDiagnostic, QuickClean, deepCleanLabel, CustomClean, Uninstall, Settings, Exit));
+                    .AddChoices(
+                        RunDiagnostic, QuickClean, deepCleanLabel, CustomClean, Uninstall, Optimize, Settings, Exit));
 
             AnsiConsole.WriteLine();
 
@@ -48,6 +51,9 @@ public static class MainMenuScreen
                     break;
                 case Uninstall:
                     RunUninstallFlow();
+                    break;
+                case Optimize:
+                    RunOptimizeFlow();
                     break;
                 case Settings:
                     SettingsScreen.Show(AppSettingsModel.Load(AppPaths.SettingsFilePath));
@@ -152,6 +158,18 @@ public static class MainMenuScreen
 
         var (lister, uninstaller) = Composition.CreateUninstall();
         UninstallScreen.Run(lister, uninstaller, assumeYes: false, previewOnly: false);
+    }
+
+    private static void RunOptimizeFlow()
+    {
+        if (!OperatingSystem.IsWindows() && !OperatingSystem.IsMacOS())
+        {
+            AnsiConsole.MarkupLine("[red]Optimize requires Windows or macOS.[/]");
+            return;
+        }
+
+        var actions = OptimizeFactory.Create();
+        OptimizeScreen.Run(actions, assumeYes: false, previewOnly: false);
     }
 
     private static void TryOpen(string path)

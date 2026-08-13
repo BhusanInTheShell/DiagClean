@@ -43,6 +43,11 @@ app.Configure(config =>
         .WithDescription("Remove apps and their leftover files (caches, preferences, logs).")
         .WithExample("uninstall", "--dry-run")
         .WithExample("uninstall", "--yes");
+
+    config.AddCommand<OptimizeCommand>("optimize")
+        .WithDescription("Refresh system caches and services (DNS, icon/font cache, Finder/Explorer, print spooler).")
+        .WithExample("optimize", "--dry-run")
+        .WithExample("optimize", "--yes");
 });
 
 return app.Run(args);

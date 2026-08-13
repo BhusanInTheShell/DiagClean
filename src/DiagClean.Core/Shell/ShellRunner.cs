@@ -2,6 +2,14 @@ using System.Diagnostics;
 
 namespace DiagClean.Core.Shell;
 
+/// <summary>True only if the process both completed within its timeout and exited 0 -
+/// what "did this command actually succeed" means for Optimize's actions, as opposed to
+/// Diagnostics' collectors, which only care whether they got output at all.</summary>
+public readonly record struct ShellResult(bool Completed, int ExitCode, string Output)
+{
+    public bool Succeeded => Completed && ExitCode == 0;
+}
+
 /// <summary>
 /// Runs a system CLI tool and captures stdout. macOS (and eventually Linux) diagnostics
 /// have no WMI equivalent - shelling out to system_profiler/diskutil/sysctl/log/vm_stat
@@ -18,8 +26,22 @@ public static class ShellRunner
     /// Preferred overload - each element becomes exactly one argument via
     /// ProcessStartInfo.ArgumentList, with no shell-quoting ambiguity. Required for
     /// arguments containing spaces (log show predicates, paths with spaces).
+    ///
+    /// Returns the captured stdout whenever the process completed within its timeout,
+    /// regardless of exit code - this is intentional for the Diagnostics collectors that
+    /// are this method's main caller, where "ran but printed nothing useful" and "ran
+    /// and exited nonzero" both mean the same thing: nothing to parse, degrade
+    /// gracefully. Callers that need to know whether the command actually *succeeded*
+    /// (Optimize's actions) should use <see cref="RunWithExitCode"/> instead.
     /// </summary>
     public static string? Run(string fileName, IReadOnlyList<string> arguments, TimeSpan? timeout = null)
+    {
+        var result = RunWithExitCode(fileName, arguments, timeout);
+        return result.Completed ? result.Output : null;
+    }
+
+    public static ShellResult RunWithExitCode(
+        string fileName, IReadOnlyList<string> arguments, TimeSpan? timeout = null)
     {
         try
         {
@@ -47,15 +69,15 @@ public static class ShellRunner
             if (!completed)
             {
                 TryKill(process);
-                return null;
+                return new ShellResult(false, -1, "");
             }
 
-            return outputTask.GetAwaiter().GetResult();
+            return new ShellResult(true, process.ExitCode, outputTask.GetAwaiter().GetResult());
         }
         catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or IOException)
         {
             // Binary not found or not executable on this machine - degrade gracefully.
-            return null;
+            return new ShellResult(false, -1, "");
         }
     }
 

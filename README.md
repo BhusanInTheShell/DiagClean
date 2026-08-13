@@ -12,12 +12,13 @@
 
 ## Features
 
-- **Three tools, one binary**: a full diagnostic report, a safety-first cleanup utility, and an app uninstaller with leftover-file cleanup, in the same interactive menu
+- **Four tools, one binary**: a full diagnostic report, a safety-first cleanup utility, an app uninstaller with leftover-file cleanup, and a system optimizer, in the same interactive menu
 - **One-pass diagnostics**: hardware, disk health/SMART, recent system log errors, installed software, network config, and a performance snapshot — out as a self-contained **HTML and/or PDF** report you can attach to a ticket
 - **Safety-first cleanup**: temp files, browser caches, and OS-specific bloat, always previewed in **dry-run** before anything is deleted
 - **Uninstall with leftovers**: removes an app plus its caches, preferences, logs, and containers - moved to Trash/Recycle Bin (recoverable), not permanently deleted
+- **Optimize**: refreshes DNS/icon/font caches and stuck services (print spooler, Finder/Explorer) - a conservative set of well-known helpdesk fixes, not deep system tweaks
 - **Cross-platform by design**: Windows (WMI/Event Log/Registry) and macOS (`system_profiler`/`diskutil`/`log show`) share one CLI and report format
-- **Audit trail**: every clean/uninstall run is logged — what was scanned, what was touched, what failed and why
+- **Audit trail**: every clean/uninstall/optimize run is logged — what was scanned, what was touched, what failed and why
 
 ## Quick Start
 
@@ -47,6 +48,7 @@ dclean diag --format pdf                     # ...or PDF, or --format both
 dclean clean --preset quick --dry-run        # Preview only, nothing deleted
 dclean clean --preset deep --yes             # Unattended, skips confirmation
 dclean uninstall --dry-run                   # Pick apps, preview what would be removed
+dclean optimize --dry-run                    # Pick optimizations, preview what would run
 
 dclean diag --output ~/reports/machine1.html # Diagnostic report to a specific path
 dclean --help                                # Show all commands
@@ -137,6 +139,31 @@ app's own registered uninstaller launches first (interactively, one at a time); 
 `%APPDATA%`/`%LOCALAPPDATA%`/`%PROGRAMDATA%` residue is then scanned and cleaned as a
 separate step afterward.
 
+### Optimize (refresh caches + services)
+
+```
+$ dclean optimize
+
+Select optimizations to run
+☐ Flush DNS Cache (needs admin) - Clears the local DNS resolver cache...
+☐ Rebuild LaunchServices Database (needs admin) - Re-registers every installed app's...
+☐ Restart Finder and Dock - Restarts Finder and Dock - both relaunch automatically...
+☐ Clear Font Cache - Clears the current user's font cache...
+☐ Rebuild Spotlight Index (needs admin, slow) - Forces a full reindex of the boot volume...
+
+Done. 2 succeeded, 0 failed.
+  ✓ Restart Finder and Dock: Finder and Dock restarted.
+  ✓ Clear Font Cache: Font cache cleared.
+```
+
+A deliberately conservative set of well-known, real helpdesk fixes (DNS issues, wrong
+default app, Finder/Explorer glitches, missing Spotlight/search results, stuck print
+jobs) - not deep system tweaks. Every action reports real success/failure based on the
+underlying command's actual exit code, not just "did it run" - confirmed live: running
+an admin-only action without elevation correctly reports failure rather than a false
+"done". Actions flagged `slow` (a full search-index rebuild can take minutes to hours)
+get a separate, explicit confirmation before running.
+
 ## Platform support
 
 | | Windows | macOS |
@@ -144,6 +171,7 @@ separate step afterward.
 | Diagnostic collectors | WMI, Event Log, Registry | `system_profiler`, `diskutil`, `sysctl`, unified log (`log show`) |
 | Clean targets | Temp, Browser Cache, Windows Update, Installer Leftovers | Temp, Browser Cache, System Caches (`~/Library/Caches`) |
 | Uninstall | Vendor uninstaller + AppData leftover cleanup | Move app + Library leftovers to Trash |
+| Optimize actions | DNS flush, icon cache, Explorer restart, print spooler reset | DNS flush, LaunchServices/Spotlight rebuild, Finder/Dock restart, font cache |
 | Distribution | Portable `.exe` (zip), winget PR pending review | Homebrew tap, portable tarball |
 
 Linux isn't supported yet — the architecture (interface-based collectors/targets
@@ -168,7 +196,12 @@ selected by a factory) is there to add it the same way macOS was added.
   leftovers move to `~/.Trash` rather than being deleted outright. On Windows, the app
   itself is never touched directly at all - only its own registered uninstaller can
   remove it consistently (no orphaned registry entries/services/shortcuts).
-- **Every clean/uninstall run is logged** to the platform's app-data directory
+- **Optimize's actions are a conservative, well-known set** (DNS flush, icon/font
+  cache, service restarts) - no deep system tweaks, and every action reports real
+  success/failure from the underlying command's actual exit code rather than assuming
+  it worked. Actions that can take minutes to hours (a search-index rebuild) require a
+  separate, explicit confirmation before running.
+- **Every clean/uninstall/optimize run is logged** to the platform's app-data directory
   (`%LOCALAPPDATA%\DiagClean\logs\` on Windows, `~/Library/Application Support/DiagClean/logs/`
   on macOS) — what was scanned, what was touched, what failed and why.
 
@@ -229,11 +262,15 @@ src/
                         place Clean deletes anything)
     Uninstall/         App lister + uninstaller interfaces, Mac (Trash-move) and
                         Windows (vendor uninstaller + leftover cleanup) implementations
+    Optimize/          IOptimizationAction + delegate-based implementation, Mac and
+                        Windows action lists (each action is a one-shot OS command)
     Reporting/         Self-contained HTML and PDF report renderers
-    Shell/             Process-execution helper the Mac collectors shell out through
+    Shell/             Process-execution helper (with real exit-code reporting) the
+                        Mac collectors and Optimize's actions shell out through
     Shared/            Filesystem scan helpers shared by Cleaning and Uninstall
     Models/            DTOs shared across the above
-  DiagClean.Cli/       Spectre.Console entry point (interactive menu + `diag`/`clean`/`uninstall` CLI commands)
+  DiagClean.Cli/       Spectre.Console entry point (interactive menu + `diag`/`clean`/
+                        `uninstall`/`optimize` CLI commands)
   DiagClean.Tests/     xUnit tests - fake-filesystem unit tests plus live tests that
                         run the real macOS collectors/targets against this machine
 ```

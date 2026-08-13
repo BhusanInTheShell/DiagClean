@@ -88,6 +88,27 @@ path is unverified; the macOS side has real live test coverage, see below).
       prompt appears (via `UseShellExecute = true`) rather than silently failing.
 - [ ] Confirm `%LOCALAPPDATA%\DiagClean\logs\uninstall-<date>.log` was written.
 
+## Optimize module
+
+Also never run against a real Windows machine. Every action here is documented against
+known Windows behavior but unverified - unlike the macOS actions, which were each run
+live and confirmed to correctly report failure (not false success) when a
+privilege-requiring command was run unelevated.
+
+- [ ] `dclean.exe optimize --dry-run` (needs an interactive terminal - see note in the
+      Uninstall section above) - confirm all four actions are listed with correct
+      `(needs admin)` tags (only "Reset Print Spooler" should show it).
+- [ ] Run "Flush DNS Cache" as a standard user - confirm it reports success (`ipconfig
+      /flushdns` doesn't need admin).
+- [ ] Run "Rebuild Icon Cache" - confirm Explorer visibly restarts and icons still
+      render correctly afterward (not all blank/generic).
+- [ ] Run "Restart Windows Explorer" - confirm the taskbar/desktop come back correctly,
+      not stuck on a black screen.
+- [ ] Run "Reset Print Spooler" **elevated** - confirm it reports success and that
+      printing still works afterward; run it **unelevated** and confirm it reports
+      failure with a clear message rather than a crash.
+- [ ] Confirm `%LOCALAPPDATA%\DiagClean\logs\optimize-<date>.log` was written.
+
 ## If something's off
 
 The most likely failure points, in order of likelihood:
