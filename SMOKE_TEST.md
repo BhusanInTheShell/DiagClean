@@ -10,7 +10,7 @@ Windows 10/11 box before relying on DiagClean for live helpdesk work.
 ```powershell
 dotnet publish src/DiagClean.Cli/DiagClean.Cli.csproj -c Release -r win-x64
 cd src/DiagClean.Cli/bin/Release/net8.0/win-x64/publish
-.\DiagClean.exe
+.\dclean.exe
 ```
 
 Try it once as a standard user and once elevated (Run as Administrator) - several
@@ -18,7 +18,7 @@ things behave differently between the two.
 
 ## Diagnostic collector
 
-Run `.\DiagClean.exe diag` (or the menu option) and open the resulting HTML report.
+Run `.\dclean.exe diag` (or the menu option) and open the resulting HTML report.
 
 - [ ] **Hardware section** - CPU name/cores, RAM total, motherboard, BIOS version, GPU
       name(s) all populated and plausible (not all showing "0" or blank).
@@ -47,7 +47,7 @@ Run `.\DiagClean.exe diag` (or the menu option) and open the resulting HTML repo
 
 **Use a disposable/test VM for this section if at all possible.**
 
-- [ ] `DiagClean.exe clean --preset quick --dry-run` - confirm it lists real files under
+- [ ] `dclean.exe clean --preset quick --dry-run` - confirm it lists real files under
       `%TEMP%` and browser cache folders with believable sizes, and that **nothing is
       deleted** (check file timestamps/existence after).
 - [ ] Run the interactive Quick Clean, let it reach the confirmation prompt, and type

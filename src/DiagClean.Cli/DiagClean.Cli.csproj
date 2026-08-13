@@ -6,8 +6,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>DiagClean.Cli</RootNamespace>
-    <AssemblyName>DiagClean</AssemblyName>
+    <AssemblyName>dclean</AssemblyName>
     <InvariantGlobalization>true</InvariantGlobalization>
+    <Version>0.2.0</Version>
 
     <!-- Publish settings for a portable, single-file Windows executable.
          `dotnet publish -r win-x64` picks these up automatically. -->

@@ -17,7 +17,7 @@ if (args.Length == 0)
 var app = new CommandApp();
 app.Configure(config =>
 {
-    config.SetApplicationName("DiagClean");
+    config.SetApplicationName("dclean");
     config.AddCommand<DiagCommand>("diag")
         .WithDescription("Collect a diagnostic report and write it as HTML and/or PDF.")
         .WithExample("diag", "--output", "C:\\reports\\machine1.html")

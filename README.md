@@ -40,14 +40,14 @@ a [winget submission](https://github.com/microsoft/winget-pkgs/pull/416776) is p
 **Run:**
 
 ```bash
-diagclean                                       # Interactive menu
-diagclean diag                                  # Diagnostic report (HTML by default)
-diagclean diag --format pdf                     # ...or PDF, or --format both
-diagclean clean --preset quick --dry-run        # Preview only, nothing deleted
-diagclean clean --preset deep --yes             # Unattended, skips confirmation
+dclean                                       # Interactive menu
+dclean diag                                  # Diagnostic report (HTML by default)
+dclean diag --format pdf                     # ...or PDF, or --format both
+dclean clean --preset quick --dry-run        # Preview only, nothing deleted
+dclean clean --preset deep --yes             # Unattended, skips confirmation
 
-diagclean diag --output ~/reports/machine1.html # Diagnostic report to a specific path
-diagclean --help                                # Show all commands
+dclean diag --output ~/reports/machine1.html # Diagnostic report to a specific path
+dclean --help                                # Show all commands
 ```
 
 ## Tips
@@ -67,7 +67,7 @@ diagclean --help                                # Show all commands
 ### Diagnostic Collector
 
 ```
-$ diagclean diag --format both
+$ dclean diag --format both
 
 Collecting hardware, disk, network, event log, and software data...
 Report written to /Users/you/Library/Application Support/DiagClean/reports/DiagClean-Report-your-mac-20260813-170600.html
@@ -81,7 +81,7 @@ ticket. No dependencies to view it: open the HTML in any browser, or send the PD
 ### Quick Clean (dry-run preview)
 
 ```
-$ diagclean clean --preset deep --dry-run
+$ dclean clean --preset deep --dry-run
 
      Dry-run preview - nothing has been deleted yet
 ╭──────────────┬───────┬──────────┬─────────────────────╮

@@ -1,7 +1,7 @@
 namespace DiagClean.Core.Shell;
 
 /// <summary>
-/// When DiagClean runs elevated on macOS (`sudo diagclean ...`), APIs that resolve
+/// When DiagClean runs elevated on macOS (`sudo dclean ...`), APIs that resolve
 /// per-user paths based on the *current process's* effective UID - notably
 /// Path.GetTempPath(), which maps to confstr(_CS_DARWIN_USER_TEMP_DIR) - resolve to
 /// root's own per-boot temp namespace, not the invoking human's. Root's namespace is
