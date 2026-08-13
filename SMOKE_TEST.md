@@ -109,6 +109,27 @@ privilege-requiring command was run unelevated.
       failure with a clear message rather than a crash.
 - [ ] Confirm `%LOCALAPPDATA%\DiagClean\logs\optimize-<date>.log` was written.
 
+## Analyze module
+
+Windows uses the plain managed recursive-walk analyzer (no `du` equivalent used here) -
+unlike macOS, this was never run against a real Windows machine at all.
+
+- [ ] `dclean.exe analyze` - confirm it starts at your home directory, lists real
+      folders/files with plausible sizes, and the bars/percentages look proportionally
+      correct against the displayed total.
+- [ ] Navigate into a large folder (e.g. `AppData`) - confirm it scans (spinner shows)
+      and doesn't hang or crash on a folder with many files/deep nesting.
+- [ ] Select a file and choose "Open" - confirm it opens with the expected default app.
+- [ ] Select a file or folder and choose "Reveal in Finder/Explorer" - confirm Explorer
+      opens with that item selected (`explorer.exe /select,<path>`).
+- [ ] Select something disposable and choose "Delete", type `DELETE` to confirm -
+      confirm the message correctly says **permanently deleted** (not "moved to
+      Trash" - Windows has no Recycle Bin integration here, see README's Safety
+      model section) and that the file is actually gone afterward.
+- [ ] Confirm ".. (go up)" navigates correctly all the way to a drive root, and that
+      going up from a drive root doesn't crash (there should be no ".. (go up)" option
+      once you can't go higher).
+
 ## If something's off
 
 The most likely failure points, in order of likelihood:

@@ -1,3 +1,5 @@
+using System.IO.Abstractions;
+using DiagClean.Core.Analyze;
 using DiagClean.Core.Models;
 using DiagClean.Core.Optimize;
 using DiagClean.Core.Reporting;
@@ -15,6 +17,7 @@ public static class MainMenuScreen
     private const string CustomClean = "Custom Clean (choose categories)";
     private const string Uninstall = "Uninstall (remove apps + leftovers)";
     private const string Optimize = "Optimize (refresh caches + services)";
+    private const string Analyze = "Analyze (browse disk usage)";
     private const string Settings = "Settings";
     private const string Exit = "Exit";
 
@@ -30,7 +33,8 @@ public static class MainMenuScreen
                 new SelectionPrompt<string>()
                     .Title("What would you like to do?")
                     .AddChoices(
-                        RunDiagnostic, QuickClean, deepCleanLabel, CustomClean, Uninstall, Optimize, Settings, Exit));
+                        RunDiagnostic, QuickClean, deepCleanLabel, CustomClean, Uninstall, Optimize, Analyze,
+                        Settings, Exit));
 
             AnsiConsole.WriteLine();
 
@@ -54,6 +58,9 @@ public static class MainMenuScreen
                     break;
                 case Optimize:
                     RunOptimizeFlow();
+                    break;
+                case Analyze:
+                    RunAnalyzeFlow();
                     break;
                 case Settings:
                     SettingsScreen.Show(AppSettingsModel.Load(AppPaths.SettingsFilePath));
@@ -170,6 +177,20 @@ public static class MainMenuScreen
 
         var actions = OptimizeFactory.Create();
         OptimizeScreen.Run(actions, assumeYes: false, previewOnly: false);
+    }
+
+    private static void RunAnalyzeFlow()
+    {
+        if (!OperatingSystem.IsWindows() && !OperatingSystem.IsMacOS())
+        {
+            AnsiConsole.MarkupLine("[red]Analyze requires Windows or macOS.[/]");
+            return;
+        }
+
+        IFileSystem fileSystem = new FileSystem();
+        var startPath = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        var analyzer = AnalyzeFactory.Create(fileSystem);
+        AnalyzeScreen.Run(analyzer, fileSystem, startPath);
     }
 
     private static void TryOpen(string path)

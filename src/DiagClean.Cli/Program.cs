@@ -48,6 +48,11 @@ app.Configure(config =>
         .WithDescription("Refresh system caches and services (DNS, icon/font cache, Finder/Explorer, print spooler).")
         .WithExample("optimize", "--dry-run")
         .WithExample("optimize", "--yes");
+
+    config.AddCommand<AnalyzeCommand>("analyze")
+        .WithDescription("Browse disk usage interactively, starting from your home directory (or --path).")
+        .WithExample("analyze")
+        .WithExample("analyze", "--path", "C:\\Users\\you\\Downloads");
 });
 
 return app.Run(args);

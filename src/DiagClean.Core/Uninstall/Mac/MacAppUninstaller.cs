@@ -2,6 +2,7 @@ using System.IO.Abstractions;
 using System.Runtime.Versioning;
 using DiagClean.Core.Models;
 using DiagClean.Core.Safety;
+using DiagClean.Core.Shared;
 
 namespace DiagClean.Core.Uninstall.Mac;
 
@@ -77,7 +78,7 @@ public sealed class MacAppUninstaller : IAppUninstaller
 
         try
         {
-            MoveToTrash(path);
+            MacTrash.Move(_fileSystem, path);
             bytesFreed += sizeBytes;
             itemsRemoved++;
             return true;
@@ -86,36 +87,6 @@ public sealed class MacAppUninstaller : IAppUninstaller
         {
             failures.Add(new CleanFailure(path, ex.Message));
             return false;
-        }
-    }
-
-    private void MoveToTrash(string sourcePath)
-    {
-        var trashDir = _fileSystem.Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".Trash");
-        _fileSystem.Directory.CreateDirectory(trashDir);
-
-        var baseName = _fileSystem.Path.GetFileName(sourcePath);
-        var destPath = _fileSystem.Path.Combine(trashDir, baseName);
-
-        // .Trash keeps a flat namespace - an item with the same name may already be
-        // there from a previous delete, so find a free name rather than overwrite it.
-        var counter = 1;
-        while (_fileSystem.Directory.Exists(destPath) || _fileSystem.File.Exists(destPath))
-        {
-            var nameWithoutExt = _fileSystem.Path.GetFileNameWithoutExtension(baseName);
-            var ext = _fileSystem.Path.GetExtension(baseName);
-            destPath = _fileSystem.Path.Combine(trashDir, $"{nameWithoutExt} {counter}{ext}");
-            counter++;
-        }
-
-        if (_fileSystem.Directory.Exists(sourcePath))
-        {
-            _fileSystem.Directory.Move(sourcePath, destPath);
-        }
-        else
-        {
-            _fileSystem.File.Move(sourcePath, destPath);
         }
     }
 }

@@ -12,11 +12,12 @@
 
 ## Features
 
-- **Four tools, one binary**: a full diagnostic report, a safety-first cleanup utility, an app uninstaller with leftover-file cleanup, and a system optimizer, in the same interactive menu
+- **Five tools, one binary**: a full diagnostic report, a safety-first cleanup utility, an app uninstaller with leftover-file cleanup, a system optimizer, and a disk usage browser, in the same interactive menu
 - **One-pass diagnostics**: hardware, disk health/SMART, recent system log errors, installed software, network config, and a performance snapshot — out as a self-contained **HTML and/or PDF** report you can attach to a ticket
 - **Safety-first cleanup**: temp files, browser caches, and OS-specific bloat, always previewed in **dry-run** before anything is deleted
 - **Uninstall with leftovers**: removes an app plus its caches, preferences, logs, and containers - moved to Trash/Recycle Bin (recoverable), not permanently deleted
 - **Optimize**: refreshes DNS/icon/font caches and stuck services (print spooler, Finder/Explorer) - a conservative set of well-known helpdesk fixes, not deep system tweaks
+- **Analyze**: navigate any folder, see what's actually eating the space with a proportional bar per entry, drill down, open/reveal, or delete one item at a time
 - **Cross-platform by design**: Windows (WMI/Event Log/Registry) and macOS (`system_profiler`/`diskutil`/`log show`) share one CLI and report format
 - **Audit trail**: every clean/uninstall/optimize run is logged — what was scanned, what was touched, what failed and why
 
@@ -49,6 +50,8 @@ dclean clean --preset quick --dry-run        # Preview only, nothing deleted
 dclean clean --preset deep --yes             # Unattended, skips confirmation
 dclean uninstall --dry-run                   # Pick apps, preview what would be removed
 dclean optimize --dry-run                    # Pick optimizations, preview what would run
+dclean analyze                               # Browse disk usage from your home directory
+dclean analyze --path ~/Downloads            # ...or start somewhere specific
 
 dclean diag --output ~/reports/machine1.html # Diagnostic report to a specific path
 dclean --help                                # Show all commands
@@ -164,6 +167,34 @@ an admin-only action without elevation correctly reports failure rather than a f
 "done". Actions flagged `slow` (a full search-index rebuild can take minutes to hours)
 get a separate, explicit confirmation before running.
 
+### Analyze (browse disk usage)
+
+```
+$ dclean analyze
+
+Analyze Disk  /Users/you  |  Total: 78.3 GB
+████████████████████  53.5%  📁 Library                                41.9 GB
+████░░░░░░░░░░░░░░░░  12.4%  📁 .android                                9.7 GB
+██░░░░░░░░░░░░░░░░░░   6.6%  📁 .gradle                                 5.1 GB
+█░░░░░░░░░░░░░░░░░░░   3.1%  📁 zentrol                                 2.3 GB
+.. (go up)
+Quit Analyze
+```
+
+Select an entry to drill into a folder, or to open/reveal/delete it - one item at a
+time, never a bulk selection, since Analyze can navigate (and delete) literally anywhere
+on disk rather than a fixed set of known-safe locations like Clean/Uninstall. On macOS
+it moves the deleted item to `~/.Trash` (same recoverable guarantee as Uninstall); on
+Windows it deletes permanently, since moving to the Recycle Bin from .NET needs a
+dependency this project has no way to verify without a real Windows machine - being
+upfront that it's permanent there is safer than shipping something unverified.
+
+Built on a selection menu rather than a live-updating raw-keyboard UI: real scans (even
+with the fast macOS `du` path) can take several seconds on large real-world folders -
+confirmed live scanning a 78GB home directory, 14 seconds - so instant per-keystroke
+feedback would be misleading regardless of how it's built. A scanning spinner runs
+between every navigation step instead.
+
 ## Platform support
 
 | | Windows | macOS |
@@ -172,6 +203,7 @@ get a separate, explicit confirmation before running.
 | Clean targets | Temp, Browser Cache, Windows Update, Installer Leftovers | Temp, Browser Cache, System Caches (`~/Library/Caches`) |
 | Uninstall | Vendor uninstaller + AppData leftover cleanup | Move app + Library leftovers to Trash |
 | Optimize actions | DNS flush, icon cache, Explorer restart, print spooler reset | DNS flush, LaunchServices/Spotlight rebuild, Finder/Dock restart, font cache |
+| Analyze | Managed recursive scan, permanent delete | Fast `du`-backed scan, delete moves to Trash |
 | Distribution | Portable `.exe` (zip), winget PR pending review | Homebrew tap, portable tarball |
 
 Linux isn't supported yet — the architecture (interface-based collectors/targets
@@ -201,6 +233,11 @@ selected by a factory) is there to add it the same way macOS was added.
   success/failure from the underlying command's actual exit code rather than assuming
   it worked. Actions that can take minutes to hours (a search-index rebuild) require a
   separate, explicit confirmation before running.
+- **Analyze deletes one item at a time, never in bulk.** It's the one tool that can
+  reach anywhere on disk rather than a fixed set of known-safe locations, so there's no
+  "allowed roots" list to check against - the full path and size are always shown, and
+  a typed `DELETE` confirmation is required before touching anything, same as everywhere
+  else in the app.
 - **Every clean/uninstall/optimize run is logged** to the platform's app-data directory
   (`%LOCALAPPDATA%\DiagClean\logs\` on Windows, `~/Library/Application Support/DiagClean/logs/`
   on macOS) — what was scanned, what was touched, what failed and why.
@@ -264,13 +301,16 @@ src/
                         Windows (vendor uninstaller + leftover cleanup) implementations
     Optimize/          IOptimizationAction + delegate-based implementation, Mac and
                         Windows action lists (each action is a one-shot OS command)
+    Analyze/           IDirectoryAnalyzer + deleter - managed recursive scan by default,
+                        Mac fast path via `du -k -d 1`
     Reporting/         Self-contained HTML and PDF report renderers
     Shell/             Process-execution helper (with real exit-code reporting) the
                         Mac collectors and Optimize's actions shell out through
-    Shared/            Filesystem scan helpers shared by Cleaning and Uninstall
+    Shared/            Filesystem scan helpers + the Mac Trash-move helper, shared by
+                        Cleaning, Uninstall, and Analyze
     Models/            DTOs shared across the above
   DiagClean.Cli/       Spectre.Console entry point (interactive menu + `diag`/`clean`/
-                        `uninstall`/`optimize` CLI commands)
+                        `uninstall`/`optimize`/`analyze` CLI commands)
   DiagClean.Tests/     xUnit tests - fake-filesystem unit tests plus live tests that
                         run the real macOS collectors/targets against this machine
 ```
