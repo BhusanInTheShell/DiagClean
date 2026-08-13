@@ -18,7 +18,7 @@ Two modes:
 |---|---|---|
 | Diagnostic collectors | WMI, Event Log, Registry | `system_profiler`, `diskutil`, `sysctl`, unified log (`log show`) |
 | Clean targets | Temp, Browser Cache, Windows Update, Installer Leftovers | Temp, Browser Cache, System Caches (`~/Library/Caches`) |
-| Distribution | Portable `.exe` (zip), winget manifest prepared | Homebrew tap, portable tarball |
+| Distribution | Portable `.exe` (zip), winget PR pending review | Homebrew tap, portable tarball |
 
 Linux isn't supported yet — the architecture (interface-based collectors/targets
 selected by a factory) is there to add it the same way macOS was added.
@@ -119,9 +119,11 @@ brew install diagclean
 
 ### Windows
 
-A winget manifest is prepared under `packaging/winget/` but not yet submitted to the
-`microsoft/winget-pkgs` repository. Until then, download the published `.exe` from the
-[GitHub Releases](https://github.com/BhusanInTheShell/DiagClean/releases) page.
+A winget submission is open at
+[microsoft/winget-pkgs#416776](https://github.com/microsoft/winget-pkgs/pull/416776),
+pending Microsoft's validation pipeline and review - once merged, `winget install
+BhusanInTheShell.DiagClean` will work. Until then, download the published `.exe` from
+the [GitHub Releases](https://github.com/BhusanInTheShell/DiagClean/releases) page.
 
 ## Publishing a portable executable manually
 
