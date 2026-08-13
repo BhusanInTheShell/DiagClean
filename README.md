@@ -117,6 +117,15 @@ brew tap BhusanInTheShell/diagclean
 brew install diagclean
 ```
 
+If `brew install` fails with `Error: Refusing to load formula .../diagclean from
+untrusted tap` (recent Homebrew versions require explicitly trusting third-party taps),
+run:
+
+```bash
+brew trust bhusanintheshell/diagclean
+brew install diagclean
+```
+
 ### Windows
 
 A winget submission is open at
