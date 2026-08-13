@@ -1,19 +1,19 @@
 # frozen_string_literal: true
 
 class Diagclean < Formula
-  desc "Diagnostic collector + safe cleanup tool for helpdesk technicians"
+  desc "Diagnostics, cleanup, uninstall, optimize, disk analysis, and status for helpdesk technicians"
   homepage "https://github.com/BhusanInTheShell/DiagClean"
-  version "0.2.1"
+  version "0.3.0"
   license "MIT"
 
   on_macos do
     on_arm do
-      url "https://github.com/BhusanInTheShell/DiagClean/releases/download/v0.2.1/dclean-osx-arm64.tar.gz"
-      sha256 "1a6578e7c8d1b940d7ac54f26f5adea7926371a19606d8f2d69759533320ce1f"
+      url "https://github.com/BhusanInTheShell/DiagClean/releases/download/v0.3.0/dclean-osx-arm64.tar.gz"
+      sha256 "af8db5f3de14a6d47a8a530d0119e9941c9f893f4c6fc8796b87b7268a96bccd"
     end
     on_intel do
-      url "https://github.com/BhusanInTheShell/DiagClean/releases/download/v0.2.1/dclean-osx-x64.tar.gz"
-      sha256 "03a2f2448f10de090700a14bdd62f5b17dba95ad1648280a5d0feb0817dfc65c"
+      url "https://github.com/BhusanInTheShell/DiagClean/releases/download/v0.3.0/dclean-osx-x64.tar.gz"
+      sha256 "6542d5056d24a3cf7a0172fbaf45c678693a76d5e69df181f6ed621c8d244709"
     end
   end
 

@@ -8,7 +8,7 @@
     <RootNamespace>DiagClean.Cli</RootNamespace>
     <AssemblyName>dclean</AssemblyName>
     <InvariantGlobalization>true</InvariantGlobalization>
-    <Version>0.2.1</Version>
+    <Version>0.3.0</Version>
 
     <!-- Publish settings for a portable, single-file Windows executable.
          `dotnet publish -r win-x64` picks these up automatically. -->
