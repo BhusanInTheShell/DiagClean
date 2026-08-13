@@ -23,12 +23,16 @@
 **Install via Homebrew (macOS) — recommended:**
 
 ```bash
-brew tap BhusanInTheShell/diagclean
-brew install diagclean
+brew install BhusanInTheShell/diagclean/diagclean
 ```
 
-> If you see `Refusing to load formula ... from untrusted tap`, run
-> `brew trust bhusanintheshell/diagclean` first, then `brew install diagclean` again.
+One command — this taps and installs together (no separate `brew tap` step needed). A
+plain `brew install diagclean` (no tap prefix) only works for formulae accepted into
+Homebrew's official `homebrew-core` repository, which requires an established usage
+track record; not realistic for a brand-new project yet.
+
+> If you see `Refusing to load formula ... from untrusted tap` on an older Homebrew
+> version, run `brew trust bhusanintheshell/diagclean` first, then reinstall.
 
 **Windows:** download the `.exe` from [Releases](https://github.com/BhusanInTheShell/DiagClean/releases) —
 a [winget submission](https://github.com/microsoft/winget-pkgs/pull/416776) is pending review.

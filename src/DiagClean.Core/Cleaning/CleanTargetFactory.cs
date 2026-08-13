@@ -1,5 +1,6 @@
 using System.IO.Abstractions;
 using DiagClean.Core.Safety;
+using DiagClean.Core.Shell;
 
 namespace DiagClean.Core.Cleaning;
 
@@ -73,10 +74,23 @@ public static class CleanTargetFactory
 
     private static IReadOnlyList<ICleanTarget> CreateMacTargets(IFileSystem fileSystem, string[] protectedPaths)
     {
-        var userTemp = fileSystem.Path.TrimEndingDirectorySeparator(fileSystem.Path.GetTempPath());
+        // Under `sudo`, Path.GetTempPath() resolves to *root's own* per-boot temp
+        // namespace (live daemon sockets, not user junk) rather than the invoking
+        // human's - ElevatedUserResolver corrects for that when applicable.
+        var userTemp = fileSystem.Path.TrimEndingDirectorySeparator(
+            ElevatedUserResolver.TryGetOriginalUserTempDir() ?? fileSystem.Path.GetTempPath());
         var sharedTemp = "/private/tmp";
-        var appSupport = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData); // ~/Library/Application Support
-        var caches = Environment.GetFolderPath(Environment.SpecialFolder.InternetCache); // ~/Library/Caches
+
+        // Same concern as userTemp above: under `sudo`, whether HOME points at the
+        // invoking user or at root depends on the machine's sudoers config - resolve
+        // the real user's home explicitly rather than assume.
+        var originalHome = ElevatedUserResolver.TryGetOriginalUserHomeDir();
+        var appSupport = originalHome is not null // ~/Library/Application Support
+            ? fileSystem.Path.Combine(originalHome, "Library", "Application Support")
+            : Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+        var caches = originalHome is not null // ~/Library/Caches
+            ? fileSystem.Path.Combine(originalHome, "Library", "Caches")
+            : Environment.GetFolderPath(Environment.SpecialFolder.InternetCache);
 
         var tempRoots = new[] { userTemp, sharedTemp };
         var browserCacheExclusions = new[] { "Google", "Microsoft Edge", "Firefox", "com.apple.Safari" };
