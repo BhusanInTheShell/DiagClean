@@ -10,6 +10,17 @@ QuestPDF.Settings.License = LicenseType.Community;
 
 if (args.Length == 0)
 {
+    if (Console.IsInputRedirected)
+    {
+        // No TTY to prompt against - Spectre.Console throws NotSupportedException from
+        // deep inside MainMenuScreen.Run() if this isn't caught up front, crashing with
+        // an unhandled-exception stack trace instead of a usable message. Any launch
+        // context without a real terminal hits this: RMM/remote exec, a CI installer
+        // validation sandbox invoking the exe to confirm it runs, `dclean < /dev/null`.
+        Console.WriteLine("DiagClean's interactive menu requires a terminal. Run 'dclean --help' for available commands.");
+        return 0;
+    }
+
     MainMenuScreen.Run();
     return 0;
 }

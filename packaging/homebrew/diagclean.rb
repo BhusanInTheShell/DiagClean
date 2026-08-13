@@ -3,17 +3,17 @@
 class Diagclean < Formula
   desc "Diagnostic collector + safe cleanup tool for helpdesk technicians"
   homepage "https://github.com/BhusanInTheShell/DiagClean"
-  version "0.2.0"
+  version "0.2.1"
   license "MIT"
 
   on_macos do
     on_arm do
-      url "https://github.com/BhusanInTheShell/DiagClean/releases/download/v0.2.0/dclean-osx-arm64.tar.gz"
-      sha256 "0814b3c584009d7a668e04acbaf10109dac48990ec26fba16e139aefe7ffeb44"
+      url "https://github.com/BhusanInTheShell/DiagClean/releases/download/v0.2.1/dclean-osx-arm64.tar.gz"
+      sha256 "1a6578e7c8d1b940d7ac54f26f5adea7926371a19606d8f2d69759533320ce1f"
     end
     on_intel do
-      url "https://github.com/BhusanInTheShell/DiagClean/releases/download/v0.2.0/dclean-osx-x64.tar.gz"
-      sha256 "e7e4815344c30d7e93842edae863a1f3b74604b935c6cc3483ef8a9b2c7713ca"
+      url "https://github.com/BhusanInTheShell/DiagClean/releases/download/v0.2.1/dclean-osx-x64.tar.gz"
+      sha256 "03a2f2448f10de090700a14bdd62f5b17dba95ad1648280a5d0feb0817dfc65c"
     end
   end
 
