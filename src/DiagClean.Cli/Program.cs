@@ -53,6 +53,11 @@ app.Configure(config =>
         .WithDescription("Browse disk usage interactively, starting from your home directory (or --path).")
         .WithExample("analyze")
         .WithExample("analyze", "--path", "C:\\Users\\you\\Downloads");
+
+    config.AddCommand<StatusCommand>("status")
+        .WithDescription("Live system health dashboard - CPU, memory, disk, network, power, top processes.")
+        .WithExample("status")
+        .WithExample("status", "--once");
 });
 
 return app.Run(args);

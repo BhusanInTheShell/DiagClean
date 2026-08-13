@@ -160,16 +160,10 @@ public static class AnalyzeScreen
     private static string FormatEntry(DiskEntry entry, long totalBytes)
     {
         var pct = totalBytes > 0 ? (double)entry.SizeBytes / totalBytes * 100 : 0;
-        var bar = RenderBar(pct);
+        var bar = FormatUtils.RenderBar(pct);
         var icon = entry.IsDirectory ? "\U0001F4C1" : "\U0001F4C4"; // 📁 / 📄
         var name = Markup.Escape(entry.Name);
         return $"{bar} {pct,5:0.0}%  {icon} {name,-40} {FormatUtils.FormatSize(entry.SizeBytes),10}";
-    }
-
-    private static string RenderBar(double percent, int width = 20)
-    {
-        var filled = Math.Clamp((int)Math.Round(percent / 100 * width), 0, width);
-        return new string('█', filled) + new string('░', width - filled);
     }
 
     private enum EntryAction { Enter, Open, Reveal, Delete, Cancel }

@@ -12,12 +12,13 @@
 
 ## Features
 
-- **Five tools, one binary**: a full diagnostic report, a safety-first cleanup utility, an app uninstaller with leftover-file cleanup, a system optimizer, and a disk usage browser, in the same interactive menu
+- **Six tools, one binary**: a full diagnostic report, a safety-first cleanup utility, an app uninstaller with leftover-file cleanup, a system optimizer, a disk usage browser, and a live health dashboard, in the same interactive menu
 - **One-pass diagnostics**: hardware, disk health/SMART, recent system log errors, installed software, network config, and a performance snapshot — out as a self-contained **HTML and/or PDF** report you can attach to a ticket
 - **Safety-first cleanup**: temp files, browser caches, and OS-specific bloat, always previewed in **dry-run** before anything is deleted
 - **Uninstall with leftovers**: removes an app plus its caches, preferences, logs, and containers - moved to Trash/Recycle Bin (recoverable), not permanently deleted
 - **Optimize**: refreshes DNS/icon/font caches and stuck services (print spooler, Finder/Explorer) - a conservative set of well-known helpdesk fixes, not deep system tweaks
 - **Analyze**: navigate any folder, see what's actually eating the space with a proportional bar per entry, drill down, open/reveal, or delete one item at a time
+- **Status**: a live-refreshing dashboard - CPU, memory, disk, network, battery, top processes - for watching a machine in real time during a support call
 - **Cross-platform by design**: Windows (WMI/Event Log/Registry) and macOS (`system_profiler`/`diskutil`/`log show`) share one CLI and report format
 - **Audit trail**: every clean/uninstall/optimize run is logged — what was scanned, what was touched, what failed and why
 
@@ -52,6 +53,8 @@ dclean uninstall --dry-run                   # Pick apps, preview what would be 
 dclean optimize --dry-run                    # Pick optimizations, preview what would run
 dclean analyze                               # Browse disk usage from your home directory
 dclean analyze --path ~/Downloads            # ...or start somewhere specific
+dclean status                                # Live health dashboard - press Q to quit
+dclean status --once                         # Single snapshot, works non-interactively
 
 dclean diag --output ~/reports/machine1.html # Diagnostic report to a specific path
 dclean --help                                # Show all commands
@@ -195,6 +198,38 @@ confirmed live scanning a 78GB home directory, 14 seconds - so instant per-keyst
 feedback would be misleading regardless of how it's built. A scanning spinner runs
 between every navigation step instead.
 
+### Status (live system health)
+
+```
+$ dclean status --once
+
+┌─CPU──────────────────────────────────┐  ┌─Memory──────────────────────────────┐
+│ Total  ██░░░░░░░░░░░░░░░░░░   10.0%  │  │ Used   ██████████████░░░░░░   69.9% │
+│ Load   2.86 / 2.44 / 2.30 (10 cores) │  │ Total  11.2 / 16 GB                 │
+└──────────────────────────────────────┘  └─────────────────────────────────────┘
+┌─Disk────────────────────────────────┐   ┌─Network────────────────────────────────────────┐
+│ Used   █████████████████░░░   87.3% │   │ Down   646 B/s                                 │
+│ Free   29 / 228.3 GB                │   │ Up     478 B/s                                 │
+│ I/O    481.3 KB/s                   │   │ Power  ███████████████████░  94% (discharging) │
+└─────────────────────────────────────┘   └────────────────────────────────────────────────┘
+┌─Top Processes───────────────────────────────┐
+│ WindowServer             ████░░░░░░   41.1% │
+│ Claude Helper (Renderer) ██░░░░░░░░   23.4% │
+└───────────────────────────────────────────────┘
+```
+
+`dclean status` refreshes live until you press Q; `--once` prints a single snapshot and
+exits (works non-interactively, useful for logging or scripted checks). The refresh
+cadence isn't a fixed timer - it's paced by how long the underlying metrics actually
+take to sample. CPU, disk I/O, and network throughput are all *rates*, which need two
+measurements a moment apart to compute (confirmed live: ~2.25 seconds per full
+refresh on this machine, dominated by those sampling waits) - a UI implying
+faster-than-that feedback would just be showing stale numbers. No per-core CPU
+breakdown on macOS: getting that reliably needs `powermetrics`, which requires root,
+out of scope for a dashboard that shouldn't need elevation to open. Windows has no
+"load average" - that's a Unix concept with no equivalent statistic, so it's simply
+omitted there rather than showing something mislabeled.
+
 ## Platform support
 
 | | Windows | macOS |
@@ -204,6 +239,7 @@ between every navigation step instead.
 | Uninstall | Vendor uninstaller + AppData leftover cleanup | Move app + Library leftovers to Trash |
 | Optimize actions | DNS flush, icon cache, Explorer restart, print spooler reset | DNS flush, LaunchServices/Spotlight rebuild, Finder/Dock restart, font cache |
 | Analyze | Managed recursive scan, permanent delete | Fast `du`-backed scan, delete moves to Trash |
+| Status | PerformanceCounter, WMI, Process class - no load average | `iostat`, `vm_stat`, `pmset`, `netstat`, `ps` |
 | Distribution | Portable `.exe` (zip), winget PR pending review | Homebrew tap, portable tarball |
 
 Linux isn't supported yet — the architecture (interface-based collectors/targets
@@ -303,6 +339,9 @@ src/
                         Windows action lists (each action is a one-shot OS command)
     Analyze/           IDirectoryAnalyzer + deleter - managed recursive scan by default,
                         Mac fast path via `du -k -d 1`
+    Status/            ISystemStatusCollector - CPU/memory/disk/network/battery/top
+                        processes, Mac (`iostat`/`vm_stat`/`pmset`/`netstat`/`ps`) and
+                        Windows (PerformanceCounter/WMI/Process) implementations
     Reporting/         Self-contained HTML and PDF report renderers
     Shell/             Process-execution helper (with real exit-code reporting) the
                         Mac collectors and Optimize's actions shell out through
@@ -310,7 +349,7 @@ src/
                         Cleaning, Uninstall, and Analyze
     Models/            DTOs shared across the above
   DiagClean.Cli/       Spectre.Console entry point (interactive menu + `diag`/`clean`/
-                        `uninstall`/`optimize`/`analyze` CLI commands)
+                        `uninstall`/`optimize`/`analyze`/`status` CLI commands)
   DiagClean.Tests/     xUnit tests - fake-filesystem unit tests plus live tests that
                         run the real macOS collectors/targets against this machine
 ```

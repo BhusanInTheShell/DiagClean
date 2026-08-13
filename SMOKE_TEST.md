@@ -130,6 +130,27 @@ unlike macOS, this was never run against a real Windows machine at all.
       going up from a drive root doesn't crash (there should be no ".. (go up)" option
       once you can't go higher).
 
+## Status module
+
+Never run against a real Windows machine at all - `PerformanceCounter`/WMI/`Process`
+usage is standard and well-documented, but genuinely unverified.
+
+- [ ] `dclean.exe status --once` - confirm CPU/memory/disk/network numbers are in the
+      right ballpark against Task Manager at the same moment (exact match isn't
+      expected, same-order-of-magnitude is what matters).
+- [ ] Confirm there's no "Load" row under CPU (Windows has no load average - see
+      README's Status section for why that's intentional, not a bug).
+- [ ] On a laptop, confirm battery % and charging/discharging status are correct; on a
+      desktop, confirm the Power row is simply absent rather than showing garbage.
+- [ ] Confirm Top Processes shows real, correctly-named processes (not truncated or
+      blank names) with plausible relative CPU percentages.
+- [ ] Run `dclean.exe status` (live mode) and confirm it actually refreshes over time
+      (leave it running next to something CPU-intensive) and that pressing Q exits
+      cleanly back to the shell.
+- [ ] Run `dclean.exe status --once 2>&1 | Out-File snapshot.txt` (or similar
+      redirection) - confirm it does NOT throw and produces a clean text snapshot,
+      since `--once` is specifically meant to work non-interactively.
+
 ## If something's off
 
 The most likely failure points, in order of likelihood:

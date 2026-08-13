@@ -3,6 +3,7 @@ using DiagClean.Core.Analyze;
 using DiagClean.Core.Models;
 using DiagClean.Core.Optimize;
 using DiagClean.Core.Reporting;
+using DiagClean.Core.Status;
 using DiagClean.Core.Uninstall;
 using Spectre.Console;
 
@@ -18,6 +19,7 @@ public static class MainMenuScreen
     private const string Uninstall = "Uninstall (remove apps + leftovers)";
     private const string Optimize = "Optimize (refresh caches + services)";
     private const string Analyze = "Analyze (browse disk usage)";
+    private const string Status = "Status (live system health)";
     private const string Settings = "Settings";
     private const string Exit = "Exit";
 
@@ -34,7 +36,7 @@ public static class MainMenuScreen
                     .Title("What would you like to do?")
                     .AddChoices(
                         RunDiagnostic, QuickClean, deepCleanLabel, CustomClean, Uninstall, Optimize, Analyze,
-                        Settings, Exit));
+                        Status, Settings, Exit));
 
             AnsiConsole.WriteLine();
 
@@ -61,6 +63,9 @@ public static class MainMenuScreen
                     break;
                 case Analyze:
                     RunAnalyzeFlow();
+                    break;
+                case Status:
+                    RunStatusFlow();
                     break;
                 case Settings:
                     SettingsScreen.Show(AppSettingsModel.Load(AppPaths.SettingsFilePath));
@@ -191,6 +196,18 @@ public static class MainMenuScreen
         var startPath = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         var analyzer = AnalyzeFactory.Create(fileSystem);
         AnalyzeScreen.Run(analyzer, fileSystem, startPath);
+    }
+
+    private static void RunStatusFlow()
+    {
+        if (!OperatingSystem.IsWindows() && !OperatingSystem.IsMacOS())
+        {
+            AnsiConsole.MarkupLine("[red]Status requires Windows or macOS.[/]");
+            return;
+        }
+
+        var collector = StatusFactory.Create();
+        StatusScreen.Run(collector, once: false);
     }
 
     private static void TryOpen(string path)
