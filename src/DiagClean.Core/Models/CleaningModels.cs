@@ -5,7 +5,8 @@ public enum CleanCategory
     TempFiles,
     BrowserCache,
     WindowsUpdate,
-    InstallerLeftovers
+    InstallerLeftovers,
+    SystemCaches
 }
 
 public sealed record CleanItem

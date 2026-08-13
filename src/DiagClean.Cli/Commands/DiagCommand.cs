@@ -21,9 +21,9 @@ public sealed class DiagCommand : Command<DiagCommand.Settings>
 
     public override int Execute(CommandContext context, Settings settings)
     {
-        if (!OperatingSystem.IsWindows())
+        if (!OperatingSystem.IsWindows() && !OperatingSystem.IsMacOS())
         {
-            AnsiConsole.MarkupLine("[red]Diagnostics require Windows.[/]");
+            AnsiConsole.MarkupLine("[red]Diagnostics require Windows or macOS.[/]");
             return 1;
         }
 

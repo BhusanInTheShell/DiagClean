@@ -4,10 +4,10 @@ using DiagClean.Core.Safety;
 namespace DiagClean.Core.Cleaning;
 
 /// <summary>
-/// Builds the default set of clean targets, each wired to its own PathGuard scoped to
-/// only the roots that target legitimately needs. Keeping the guard construction here
-/// (rather than inside each target) means every target's allowed-roots list is visible
-/// in one place for review.
+/// Builds the default set of clean targets for the current OS, each wired to its own
+/// PathGuard scoped to only the roots that target legitimately needs. Keeping the guard
+/// construction here (rather than inside each target) means every target's allowed-roots
+/// list is visible in one place for review.
 /// </summary>
 public static class CleanTargetFactory
 {
@@ -18,11 +18,17 @@ public static class CleanTargetFactory
             .Concat(extraProtectedPaths ?? [])
             .ToArray();
 
+        return OperatingSystem.IsWindows()
+            ? CreateWindowsTargets(fileSystem, protectedPaths)
+            : CreateMacTargets(fileSystem, protectedPaths);
+    }
+
+    private static IReadOnlyList<ICleanTarget> CreateWindowsTargets(IFileSystem fileSystem, string[] protectedPaths)
+    {
         var userTemp = fileSystem.Path.TrimEndingDirectorySeparator(fileSystem.Path.GetTempPath());
         var windowsDir = Environment.GetFolderPath(Environment.SpecialFolder.Windows);
         var windowsTemp = fileSystem.Path.Combine(windowsDir, "Temp");
         var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-        var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
 
         var tempRoots = new[] { userTemp, windowsTemp };
 
@@ -31,13 +37,21 @@ public static class CleanTargetFactory
             new TempFilesTarget(
                 fileSystem,
                 new PathGuard(fileSystem, tempRoots, protectedPaths),
-                tempRoots),
+                tempRoots,
+                requiresElevation: true),
 
             new BrowserCacheTarget(
                 fileSystem,
                 new PathGuard(fileSystem, [localAppData], protectedPaths),
-                localAppData,
-                appData),
+                chromiumProfileRoots:
+                [
+                    fileSystem.Path.Combine(localAppData, "Google", "Chrome", "User Data"),
+                    fileSystem.Path.Combine(localAppData, "Microsoft", "Edge", "User Data"),
+                ],
+                firefoxProfileParents:
+                [
+                    fileSystem.Path.Combine(localAppData, "Mozilla", "Firefox", "Profiles"),
+                ]),
 
             new WindowsUpdateTarget(
                 fileSystem,
@@ -54,6 +68,50 @@ public static class CleanTargetFactory
                 fileSystem,
                 new PathGuard(fileSystem, tempRoots, protectedPaths),
                 tempRoots),
+        ];
+    }
+
+    private static IReadOnlyList<ICleanTarget> CreateMacTargets(IFileSystem fileSystem, string[] protectedPaths)
+    {
+        var userTemp = fileSystem.Path.TrimEndingDirectorySeparator(fileSystem.Path.GetTempPath());
+        var sharedTemp = "/private/tmp";
+        var appSupport = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData); // ~/Library/Application Support
+        var caches = Environment.GetFolderPath(Environment.SpecialFolder.InternetCache); // ~/Library/Caches
+
+        var tempRoots = new[] { userTemp, sharedTemp };
+        var browserCacheExclusions = new[] { "Google", "Microsoft Edge", "Firefox", "com.apple.Safari" };
+
+        return
+        [
+            new TempFilesTarget(
+                fileSystem,
+                new PathGuard(fileSystem, tempRoots, protectedPaths),
+                tempRoots,
+                requiresElevation: false),
+
+            new BrowserCacheTarget(
+                fileSystem,
+                new PathGuard(fileSystem, [appSupport, caches], protectedPaths),
+                chromiumProfileRoots:
+                [
+                    fileSystem.Path.Combine(appSupport, "Google", "Chrome"),
+                    fileSystem.Path.Combine(appSupport, "Microsoft Edge"),
+                ],
+                firefoxProfileParents:
+                [
+                    fileSystem.Path.Combine(caches, "Firefox", "Profiles"),
+                    fileSystem.Path.Combine(appSupport, "Firefox", "Profiles"),
+                ],
+                standaloneCacheDirs:
+                [
+                    fileSystem.Path.Combine(caches, "com.apple.Safari"),
+                ]),
+
+            new SystemCachesTarget(
+                fileSystem,
+                new PathGuard(fileSystem, [caches], protectedPaths),
+                caches,
+                excludedTopLevelNames: browserCacheExclusions),
         ];
     }
 }

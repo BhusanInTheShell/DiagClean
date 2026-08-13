@@ -25,9 +25,9 @@ public sealed class CleanCommand : Command<CleanCommand.Settings>
 
     public override int Execute(CommandContext context, Settings settings)
     {
-        if (!OperatingSystem.IsWindows())
+        if (!OperatingSystem.IsWindows() && !OperatingSystem.IsMacOS())
         {
-            AnsiConsole.MarkupLine("[red]Cleaning requires Windows.[/]");
+            AnsiConsole.MarkupLine("[red]Cleaning requires Windows or macOS.[/]");
             return 1;
         }
 

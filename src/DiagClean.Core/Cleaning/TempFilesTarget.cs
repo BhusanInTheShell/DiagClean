@@ -13,15 +13,21 @@ public sealed class TempFilesTarget : CleanTargetBase, ICleanTarget
 {
     private readonly IReadOnlyList<string> _roots;
 
-    public TempFilesTarget(IFileSystem fileSystem, IPathGuard guard, IReadOnlyList<string> tempRoots)
+    public TempFilesTarget(
+        IFileSystem fileSystem, IPathGuard guard, IReadOnlyList<string> tempRoots, bool requiresElevation = true)
         : base(fileSystem, guard)
     {
         _roots = tempRoots;
+        RequiresElevation = requiresElevation;
     }
 
     public CleanCategory Category => CleanCategory.TempFiles;
     public string DisplayName => "Temp Files";
-    public bool RequiresElevation => true; // machine-wide Windows\Temp needs admin rights to clear fully.
+
+    // Defaults to true: Windows' machine-wide Windows\Temp root needs admin rights to
+    // clear fully. macOS's per-user temp dir (and /private/tmp for typical single-user
+    // use) usually doesn't - the factory passes false there.
+    public bool RequiresElevation { get; }
 
     public ScanResult Scan()
     {

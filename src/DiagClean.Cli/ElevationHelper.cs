@@ -1,25 +1,8 @@
-using System.Runtime.Versioning;
-using System.Security.Principal;
-
 namespace DiagClean.Cli;
 
 public static class ElevationHelper
 {
-    public static bool IsRunningAsAdministrator()
-    {
-        if (!OperatingSystem.IsWindows())
-        {
-            return false;
-        }
-
-        return IsAdministratorWindows();
-    }
-
-    [SupportedOSPlatform("windows")]
-    private static bool IsAdministratorWindows()
-    {
-        using var identity = WindowsIdentity.GetCurrent();
-        var principal = new WindowsPrincipal(identity);
-        return principal.IsInRole(WindowsBuiltInRole.Administrator);
-    }
+    // Cross-platform since .NET 8: true when running as Administrator on Windows or
+    // root on macOS/Linux. Replaces separate WindowsPrincipal/geteuid checks.
+    public static bool IsRunningAsAdministrator() => Environment.IsPrivilegedProcess;
 }

@@ -8,7 +8,8 @@ public static class MainMenuScreen
 {
     private const string RunDiagnostic = "Run Full Diagnostic Report";
     private const string QuickClean = "Quick Clean (temp + browser cache)";
-    private const string DeepClean = "Deep Clean (+ Windows Update + installer leftovers)";
+    private const string DeepCleanWindows = "Deep Clean (+ Windows Update + installer leftovers)";
+    private const string DeepCleanMac = "Deep Clean (+ system caches)";
     private const string CustomClean = "Custom Clean (choose categories)";
     private const string Settings = "Settings";
     private const string Exit = "Exit";
@@ -16,6 +17,7 @@ public static class MainMenuScreen
     public static void Run()
     {
         PrintBanner();
+        var deepCleanLabel = OperatingSystem.IsWindows() ? DeepCleanWindows : DeepCleanMac;
 
         while (true)
         {
@@ -23,7 +25,7 @@ public static class MainMenuScreen
             var choice = AnsiConsole.Prompt(
                 new SelectionPrompt<string>()
                     .Title("What would you like to do?")
-                    .AddChoices(RunDiagnostic, QuickClean, DeepClean, CustomClean, Settings, Exit));
+                    .AddChoices(RunDiagnostic, QuickClean, deepCleanLabel, CustomClean, Settings, Exit));
 
             AnsiConsole.WriteLine();
 
@@ -35,7 +37,8 @@ public static class MainMenuScreen
                 case QuickClean:
                     RunCleanFlow(CleanPreset.Quick);
                     break;
-                case DeepClean:
+                case DeepCleanWindows:
+                case DeepCleanMac:
                     RunCleanFlow(CleanPreset.Deep);
                     break;
                 case CustomClean:
@@ -54,21 +57,22 @@ public static class MainMenuScreen
     {
         AnsiConsole.Write(new FigletText("DiagClean").Color(Color.SteelBlue));
         var elevated = ElevationHelper.IsRunningAsAdministrator();
-        var elevatedText = elevated ? "[green]Administrator[/]" : "[yellow]Standard user[/]";
-        AnsiConsole.MarkupLine($"Diagnostic collector + safe cleanup for Windows helpdesk techs   [grey]|[/]   Running as: {elevatedText}");
+        var privilegedRoleName = OperatingSystem.IsWindows() ? "Administrator" : "root";
+        var elevatedText = elevated ? $"[green]{privilegedRoleName}[/]" : "[yellow]Standard user[/]";
+        AnsiConsole.MarkupLine($"Diagnostic collector + safe cleanup for helpdesk technicians   [grey]|[/]   Running as: {elevatedText}");
 
         if (!elevated)
         {
             AnsiConsole.MarkupLine(
-                "[grey]Some diagnostics (SMART, some event logs) and Deep Clean need Administrator to see everything.[/]");
+                $"[grey]Some diagnostics (SMART, some event logs) and Deep Clean need {privilegedRoleName} to see everything.[/]");
         }
     }
 
     private static void RunDiagnosticFlow()
     {
-        if (!OperatingSystem.IsWindows())
+        if (!OperatingSystem.IsWindows() && !OperatingSystem.IsMacOS())
         {
-            AnsiConsole.MarkupLine("[red]Diagnostics require Windows.[/]");
+            AnsiConsole.MarkupLine("[red]Diagnostics require Windows or macOS.[/]");
             return;
         }
 
@@ -89,9 +93,9 @@ public static class MainMenuScreen
 
     private static void RunCleanFlow(CleanPreset preset)
     {
-        if (!OperatingSystem.IsWindows())
+        if (!OperatingSystem.IsWindows() && !OperatingSystem.IsMacOS())
         {
-            AnsiConsole.MarkupLine("[red]Cleaning requires Windows.[/]");
+            AnsiConsole.MarkupLine("[red]Cleaning requires Windows or macOS.[/]");
             return;
         }
 
@@ -110,9 +114,9 @@ public static class MainMenuScreen
 
     private static void RunCustomCleanFlow()
     {
-        if (!OperatingSystem.IsWindows())
+        if (!OperatingSystem.IsWindows() && !OperatingSystem.IsMacOS())
         {
-            AnsiConsole.MarkupLine("[red]Cleaning requires Windows.[/]");
+            AnsiConsole.MarkupLine("[red]Cleaning requires Windows or macOS.[/]");
             return;
         }
 
