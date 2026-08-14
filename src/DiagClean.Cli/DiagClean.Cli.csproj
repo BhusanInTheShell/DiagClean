@@ -8,7 +8,19 @@
     <RootNamespace>DiagClean.Cli</RootNamespace>
     <AssemblyName>dclean</AssemblyName>
     <InvariantGlobalization>true</InvariantGlobalization>
-    <Version>0.3.0</Version>
+    <Version>0.3.1</Version>
+    <!-- Otherwise InformationalVersion (what the app's version flag reports) gets a
+         "+(git commit hash)" suffix appended, noisy for a CLI tool's version output. -->
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+
+    <!-- PE version-resource metadata (Product Name/Company/File Description in Windows
+         Explorer's file properties) - populated explicitly since winget's installer
+         metadata validation inspects these, and .NET otherwise leaves them blank/generic. -->
+    <Product>DiagClean</Product>
+    <Company>BhusanInTheShell</Company>
+    <Authors>BhusanInTheShell</Authors>
+    <Description>Diagnostic collector, safe cleanup, uninstall, optimize, disk analysis, and live status for helpdesk technicians.</Description>
+    <Copyright>Copyright (c) 2026 Basanta Bhusan Khadka</Copyright>
 
     <!-- Publish settings for a portable, single-file Windows executable.
          `dotnet publish -r win-x64` picks these up automatically. -->

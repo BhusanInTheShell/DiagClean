@@ -3,17 +3,17 @@
 class Diagclean < Formula
   desc "Diagnostics, cleanup, uninstall, optimize, disk analysis, and status for helpdesk technicians"
   homepage "https://github.com/BhusanInTheShell/DiagClean"
-  version "0.3.0"
+  version "0.3.1"
   license "MIT"
 
   on_macos do
     on_arm do
-      url "https://github.com/BhusanInTheShell/DiagClean/releases/download/v0.3.0/dclean-osx-arm64.tar.gz"
-      sha256 "af8db5f3de14a6d47a8a530d0119e9941c9f893f4c6fc8796b87b7268a96bccd"
+      url "https://github.com/BhusanInTheShell/DiagClean/releases/download/v0.3.1/dclean-osx-arm64.tar.gz"
+      sha256 "ee61d93d5f2eb2a22c068c60807e3c3a21bc401cafb5e4821eeac68f6fe62c38"
     end
     on_intel do
-      url "https://github.com/BhusanInTheShell/DiagClean/releases/download/v0.3.0/dclean-osx-x64.tar.gz"
-      sha256 "6542d5056d24a3cf7a0172fbaf45c678693a76d5e69df181f6ed621c8d244709"
+      url "https://github.com/BhusanInTheShell/DiagClean/releases/download/v0.3.1/dclean-osx-x64.tar.gz"
+      sha256 "40fae422ac9570988546c1f6302911408b699b9deffcb66707392f0f66a71f50"
     end
   end
 
@@ -32,5 +32,6 @@ class Diagclean < Formula
 
   test do
     assert_match "dclean", shell_output("#{bin}/dclean --help")
+    assert_match version.to_s, shell_output("#{bin}/dclean --version")
   end
 end

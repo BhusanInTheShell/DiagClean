@@ -1,3 +1,4 @@
+using System.Reflection;
 using DiagClean.Cli.Commands;
 using DiagClean.Cli.Screens;
 using QuestPDF.Infrastructure;
@@ -29,6 +30,10 @@ var app = new CommandApp();
 app.Configure(config =>
 {
     config.SetApplicationName("dclean");
+    config.SetApplicationVersion(
+        Assembly.GetExecutingAssembly()
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
+        ?? "unknown");
     config.AddCommand<DiagCommand>("diag")
         .WithDescription("Collect a diagnostic report and write it as HTML and/or PDF.")
         .WithExample("diag", "--output", "C:\\reports\\machine1.html")
