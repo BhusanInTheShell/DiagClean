@@ -24,3 +24,8 @@ logs/
 
 ## Test results
 TestResults/
+
+## Swift / SwiftPM (mac app)
+.build/
+.swiftpm/
+*.xcodeproj
