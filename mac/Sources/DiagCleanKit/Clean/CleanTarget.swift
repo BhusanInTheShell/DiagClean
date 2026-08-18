@@ -25,7 +25,9 @@ public struct Candidate: Sendable, Hashable {
 
 // MARK: - Shared enumeration helpers
 
-enum DirectoryListing {
+/// Small filesystem helpers shared by every scanner. Named for what it does rather than
+/// what it returns, so `DirectoryListing` stays free for the model that actually is one.
+enum FileSystemListing {
     /// Immediate children of `path`, hidden entries included, symlinks excluded.
     /// Failures are silence rather than errors: an unreadable directory should cost the
     /// scan that one directory, never the whole report.

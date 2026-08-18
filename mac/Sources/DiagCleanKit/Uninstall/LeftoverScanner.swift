@@ -64,7 +64,7 @@ public struct LeftoverScanner: Sendable {
             try Task.checkCancellation()
             let root = (library as NSString).appendingPathComponent(location)
 
-            for entry in DirectoryListing.children(of: root) {
+            for entry in FileSystemListing.children(of: root) {
                 try Task.checkCancellation()
                 let entryName = (entry as NSString).lastPathComponent
 

@@ -105,7 +105,7 @@ public struct CleanScanner: Sendable {
                     ownerLabel: candidate.ownerLabel,
                     sizeBytes: size,
                     isDirectory: isDirectory.boolValue,
-                    lastModified: DirectoryListing.modificationDate(of: canonicalPath)
+                    lastModified: FileSystemListing.modificationDate(of: canonicalPath)
                 ))
             }
         }

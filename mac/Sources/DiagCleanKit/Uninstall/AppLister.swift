@@ -26,7 +26,7 @@ public struct AppLister: Sendable {
     ///   takes real time, so this stays interruptible throughout.
     public func listApps(sizer: DirectorySizer = DirectorySizer()) async throws -> [InstalledApp] {
         let bundlePaths = roots.flatMap { root in
-            DirectoryListing.children(of: root).filter { $0.hasSuffix(".app") }
+            FileSystemListing.children(of: root).filter { $0.hasSuffix(".app") }
         }
 
         // Bundles are sized concurrently — one slow bundle (an IDE, a game) should not

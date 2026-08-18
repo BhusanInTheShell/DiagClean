@@ -51,7 +51,7 @@ public struct ApplicationCachesTarget: CleanTarget {
     }
 
     public func candidates() -> [Candidate] {
-        DirectoryListing.children(of: cachesRoot)
+        FileSystemListing.children(of: cachesRoot)
             .filter { !excludedNames.contains(($0 as NSString).lastPathComponent) }
             .map { Candidate(path: $0, ownerLabel: Self.friendlyName(for: ($0 as NSString).lastPathComponent)) }
     }

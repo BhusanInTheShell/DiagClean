@@ -45,9 +45,9 @@ public struct TemporaryFilesTarget: CleanTarget {
     public func candidates() -> [Candidate] {
         let cutoff = now().addingTimeInterval(-minimumAge)
 
-        return DirectoryListing.children(of: tempRoot)
+        return FileSystemListing.children(of: tempRoot)
             .filter { path in
-                guard let modified = DirectoryListing.modificationDate(of: path) else {
+                guard let modified = FileSystemListing.modificationDate(of: path) else {
                     // No readable timestamp means no way to establish it is stale, and
                     // the whole point of the age rule is not to guess.
                     return false

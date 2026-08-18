@@ -19,6 +19,7 @@ Sources/DiagCleanKit/    all logic — no SwiftUI, no AppKit, fully testable
   Safety/                PathGuard, ProtectedPaths, path resolution
   Clean/                 targets, scanner, and the single executor that deletes
   Uninstall/             app lister, leftover matching, and the single executor that trashes
+  Analyze/               directory walker, the denylist guard, and single-item removal
   Audit/                 the run log
 Sources/DiagCleanApp/    SwiftUI, deliberately thin
 Tests/DiagCleanKitTests/ real temp directories, real symlinks, no filesystem fakes
@@ -26,8 +27,9 @@ Tests/DiagCleanKitTests/ real temp directories, real symlinks, no filesystem fak
 
 ## Status
 
-**Clean** and **Uninstall** are built. Status, Analyze, Optimize and Diagnostics appear
-in the sidebar with a description of what they'll do, and are available in the CLI today.
+**Clean**, **Uninstall** and **Analyze** are built. Status, Optimize and Diagnostics
+appear in the sidebar with a description of what they'll do, and are available in the CLI
+today.
 
 ## Safety model
 
@@ -102,6 +104,41 @@ item's original location so Finder's Put Back actually works. The CLI moves file
 `~/.Trash` by hand and loses that, which makes its "recoverable" more theoretical than
 it sounds.
 
+### Analyze
+
+Analyze is the one feature that can reach anywhere on the disk rather than into a fixed
+set of known-safe locations, so it inverts the usual shape: a denylist plus a sensitivity
+tier, rather than a narrow allowlist.
+
+The CLI's position is that there is no allowed-roots list Analyze could sensibly check
+against, since browsing anywhere is the point, so its only protection is procedural — one
+item at a time, full path shown, typed confirmation. That is right about *browsing* and
+gives up too early on *removal*. Browsing is read-only and harmless; a disk browser has no
+business trashing `/System` or a home folder no matter how carefully it asks first.
+
+- **Refused outright**: volume roots, the home folder, `/System`, `/usr`, `/bin`,
+  `/Library`, **`~/Library`**, `~/Applications`, the personal folders themselves,
+  keychains and `.ssh`, DiagClean's own logs, and `.app` bundles — which point at
+  Uninstall instead, so leftovers are handled properly rather than orphaned.
+- **Allowed but flagged personal**: anything *inside* Documents, Desktop, Downloads,
+  Pictures, Movies, Music, or iCloud Drive. Removable — finding a forgotten 40 GB export
+  in Movies is a real reason to use this — but the confirmation says plainly that this is
+  personal data rather than asking the same neutral question it asks about a cache.
+- **Allowed**: everything else.
+
+The container/contents split matters: `~/Library` at 46 GB is the largest thing in a
+typical home folder and is exactly what a disk browser surfaces first. Removing it takes
+every app's preferences, containers and keychains. Removing something *inside* it is
+ordinary work.
+
+Sizes are measured natively and concurrently, streaming in as each child finishes, so rows
+appear while the scan is still running and Cancel actually stops it. The CLI shells out to
+`du -k -d 1`, which is a single fast call that arrives all at once and cannot be
+interrupted.
+
+Removal is one item at a time — there is deliberately no multi-selection to get wrong —
+and always to the Trash.
+
 ### Clean
 
 Clean deletes permanently and says so at the point of confirmation. It does not use the
@@ -122,7 +159,7 @@ previous cleanups would be exactly the wrong behaviour.
 
 ## Testing
 
-88 tests, weighted heavily toward the paths where a bug costs somebody their data. They
+111 tests, weighted heavily toward the paths where a bug costs somebody their data. They
 run against real temp directories with real symlinks rather than a filesystem fake —
 case-insensitive volumes, symlinks and permission errors are precisely the things a
 hand-written fake gets subtly wrong, agreeing with the code under test while both are

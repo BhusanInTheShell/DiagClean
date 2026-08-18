@@ -20,6 +20,8 @@ struct RootView: View {
                 CleanView()
             case .uninstall:
                 UninstallView()
+            case .analyze:
+                AnalyzeView()
             default:
                 ComingSoonView(section: selection)
             }

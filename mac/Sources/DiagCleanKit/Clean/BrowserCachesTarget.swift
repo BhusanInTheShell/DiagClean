@@ -108,19 +108,19 @@ public struct BrowserCachesTarget: CleanTarget {
             (cachesRoot as NSString).appendingPathComponent(browser.relativePath),
             (applicationSupportRoot as NSString).appendingPathComponent(browser.relativePath),
         ] {
-            guard DirectoryListing.exists(root) else { continue }
+            guard FileSystemListing.exists(root) else { continue }
 
             for name in Self.browserLevelCacheNames {
                 let path = (root as NSString).appendingPathComponent(name)
-                if DirectoryListing.exists(path) {
+                if FileSystemListing.exists(path) {
                     results.append(Candidate(path: path, ownerLabel: browser.label))
                 }
             }
 
-            for profile in DirectoryListing.children(of: root) where Self.isProfileDirectory(profile) {
+            for profile in FileSystemListing.children(of: root) where Self.isProfileDirectory(profile) {
                 for name in Self.profileLevelCacheNames {
                     let path = (profile as NSString).appendingPathComponent(name)
-                    if DirectoryListing.exists(path) {
+                    if FileSystemListing.exists(path) {
                         results.append(Candidate(path: path, ownerLabel: browser.label))
                     }
                 }
@@ -144,18 +144,18 @@ public struct BrowserCachesTarget: CleanTarget {
         // Firefox profile directory names are randomised per install; `cache2` is the
         // fixed name of the disk cache inside each one.
         let profilesRoot = (cachesRoot as NSString).appendingPathComponent("Firefox/Profiles")
-        guard DirectoryListing.exists(profilesRoot) else { return [] }
+        guard FileSystemListing.exists(profilesRoot) else { return [] }
 
-        return DirectoryListing.children(of: profilesRoot).compactMap { profile in
+        return FileSystemListing.children(of: profilesRoot).compactMap { profile in
             let cache = (profile as NSString).appendingPathComponent("cache2")
-            guard DirectoryListing.exists(cache) else { return nil }
+            guard FileSystemListing.exists(cache) else { return nil }
             return Candidate(path: cache, ownerLabel: firefoxLabel)
         }
     }
 
     private func safariCandidates() -> [Candidate] {
         let root = (cachesRoot as NSString).appendingPathComponent("com.apple.Safari")
-        guard DirectoryListing.exists(root) else { return [] }
-        return DirectoryListing.children(of: root).map { Candidate(path: $0, ownerLabel: safariLabel) }
+        guard FileSystemListing.exists(root) else { return [] }
+        return FileSystemListing.children(of: root).map { Candidate(path: $0, ownerLabel: safariLabel) }
     }
 }
