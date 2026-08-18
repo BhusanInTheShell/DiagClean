@@ -21,6 +21,7 @@ Sources/DiagCleanKit/    all logic — no SwiftUI, no AppKit, fully testable
   Uninstall/             app lister, leftover matching, and the single executor that trashes
   Analyze/               directory walker, the denylist guard, and single-item removal
   Status/                native counters, the rate arithmetic, and health thresholds
+  Diagnostics/           collectors, redaction, and the single HTML renderer
   Audit/                 the run log
 Sources/DiagCleanApp/    SwiftUI, deliberately thin
 Tests/DiagCleanKitTests/ real temp directories, real symlinks, no filesystem fakes
@@ -28,8 +29,8 @@ Tests/DiagCleanKitTests/ real temp directories, real symlinks, no filesystem fak
 
 ## Status
 
-**Status**, **Clean**, **Uninstall** and **Analyze** are built. Optimize and Diagnostics
-appear in the sidebar with a description of what they'll do, and are available in the CLI
+**Status**, **Clean**, **Uninstall**, **Analyze** and **Diagnostics** are built. Optimize
+appears in the sidebar with a description of what it will do, and is available in the CLI
 today.
 
 ## Safety model
@@ -104,6 +105,42 @@ Uninstall moves everything to the Trash via `FileManager.trashItem`, which recor
 item's original location so Finder's Put Back actually works. The CLI moves files into
 `~/.Trash` by hand and loses that, which makes its "recoverable" more theoretical than
 it sounds.
+
+### Diagnostics
+
+Diagnostics has no destructive surface at all. Its risk is disclosure: a report is
+attached to a ticket, forwarded, and sometimes reaches a third-party vendor, carrying the
+computer name, the user's name, IP and MAC addresses, DNS servers and a complete
+inventory of everything installed. So the screen is built around what leaves the machine.
+
+- **Every section is individually includable**, and each says in plain words what it
+  contains. Sections that identify the machine or its owner are badged as such.
+- **Excluding a section means it is never collected**, not collected and then hidden. The
+  difference matters when the reason for excluding it was that it should not exist in a
+  file somebody might forward.
+- **Redaction** replaces the computer name, user name, IP and MAC addresses and DNS
+  servers with a visible marker, and the report says at the top that it was redacted — a
+  reader who does not know will otherwise read the marker as a collection failure. macOS
+  version and hardware are kept, since they identify the software, not the person.
+- **The report is saved where the technician chooses and sent nowhere.** Nothing uploads;
+  nothing writes to a default location behind their back.
+
+Collectors run in isolation, as in the CLI: one hitting a permission wall is recorded
+against its section rather than aborting the run, because a technician on somebody else's
+machine needs the report they can get. A section that explains why it is missing beats one
+that silently is not there.
+
+There is one renderer. The PDF is produced from the same HTML rather than by a second
+builder, so the two formats cannot drift apart the way the CLI's separate HTML and PDF
+builders can. Everything user-supplied is HTML-escaped — an app named `<script>` is a real
+thing somebody can install, and this document is built by string concatenation and then
+opened in a browser.
+
+**Known limitation:** the PDF is one continuous page rather than paginated sheets.
+`NSPrintOperation` is the call that paginates, and on a detached `WKWebView` it hung the
+main thread and wrote nothing; an earlier variant produced a 311 MB file with three
+million objects. `createPDF` is fast and correct, and its single tall page attaches and
+reads fine. The HTML is the primary format and any browser paginates it properly on print.
 
 ### Status
 
@@ -200,7 +237,7 @@ previous cleanups would be exactly the wrong behaviour.
 
 ## Testing
 
-135 tests, weighted heavily toward the paths where a bug costs somebody their data. They
+157 tests, weighted heavily toward the paths where a bug costs somebody their data. They
 run against real temp directories with real symlinks rather than a filesystem fake —
 case-insensitive volumes, symlinks and permission errors are precisely the things a
 hand-written fake gets subtly wrong, agreeing with the code under test while both are

@@ -24,6 +24,8 @@ struct RootView: View {
                 AnalyzeView()
             case .status:
                 StatusView()
+            case .diagnostics:
+                DiagnosticsView()
             default:
                 ComingSoonView(section: selection)
             }
