@@ -275,6 +275,28 @@ produces dangerous results.
 
 ## Distribution
 
-`Scripts/make-app.sh` assembles the bundle and ad-hoc signs it, which is enough to run
-locally. Notarised DMG and Homebrew cask hang off the same script: re-sign with a
-Developer ID identity, submit with `notarytool`, staple.
+`Scripts/make-app.sh` assembles a debug bundle and ad-hoc signs it — enough to run on the
+machine that built it, and nothing more.
+
+`Scripts/package-dmg.sh` builds the real thing: a universal release binary (arm64 and
+x86_64 in one bundle, so one DMG installs everywhere), the hardened runtime, a Developer
+ID signature, notarisation and a stapled ticket.
+
+```bash
+VERSION=0.1.0 \
+SIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)" \
+NOTARY_PROFILE=diagclean \
+./Scripts/package-dmg.sh
+```
+
+With those variables unset it still produces a DMG, ad-hoc signed and un-notarised, and
+says so loudly at both steps. That distinction matters more than it looks: an
+un-notarised DMG is indistinguishable from a real one until Gatekeeper refuses it on
+somebody else's Mac, so the script never lets the two look alike in its output.
+
+Notarisation requires a **Developer ID Application** certificate. An *Apple Development*
+certificate will not do — it signs for local use and TestFlight, and `notarytool` rejects
+it.
+
+The Homebrew cask lives at `packaging/homebrew/diagclean-app.rb`, alongside the CLI's
+formula in the same tap. Release steps are in `packaging/README.md`.
