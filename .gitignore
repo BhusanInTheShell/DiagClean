@@ -29,3 +29,7 @@ TestResults/
 .build/
 .swiftpm/
 *.xcodeproj
+
+## Derived icon artefacts — regenerate with mac/Scripts/make-icon.py
+mac/Resources/AppIcon.iconset/
+mac/Resources/AppIcon-1024.png

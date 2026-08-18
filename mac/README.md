@@ -7,10 +7,19 @@ reimplemented natively so the Mac experience is a real one.
 Requires macOS 14+.
 
 ```bash
-swift test              # the whole test suite, no UI needed
-./Scripts/make-app.sh   # assemble .build/DiagClean.app
+swift test                     # the whole test suite, no UI needed
+python3 Scripts/make-icon.py   # regenerate the app icon (only after editing it)
+./Scripts/make-app.sh          # assemble .build/DiagClean.app
 open .build/DiagClean.app
 ```
+
+The icon is drawn by `Scripts/make-icon.py` rather than committed as an opaque binary,
+so it can be reviewed and adjusted like the rest of the app; only the generated
+`Resources/AppIcon.icns` is checked in, since the packaging scripts need it and Python
+should not be a build dependency. Sizes at or below 32px are rendered from a simplified,
+bolder variant — shrinking the full drawing that far merges the ring and the pulse into
+an unreadable smudge, which is why Apple's own icons are redrawn at small sizes rather
+than scaled.
 
 ## Layout
 

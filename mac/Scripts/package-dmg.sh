@@ -43,6 +43,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
     <key>CFBundleName</key><string>DiagClean</string>
     <key>CFBundleDisplayName</key><string>DiagClean</string>
     <key>CFBundleExecutable</key><string>DiagClean</string>
+    <key>CFBundleIconFile</key><string>AppIcon</string>
     <key>CFBundleIdentifier</key><string>$BUNDLE_ID</string>
     <key>CFBundlePackageType</key><string>APPL</string>
     <key>CFBundleShortVersionString</key><string>$VERSION</string>
@@ -54,6 +55,11 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 </plist>
 PLIST
 printf 'APPL????' > "$APP/Contents/PkgInfo"
+if [[ -f "$ROOT/Resources/AppIcon.icns" ]]; then
+    cp "$ROOT/Resources/AppIcon.icns" "$APP/Contents/Resources/AppIcon.icns"
+else
+    echo "    warning: Resources/AppIcon.icns missing — run Scripts/make-icon.py"
+fi
 
 echo "==> Signing"
 if [[ -n "${SIGN_IDENTITY:-}" ]]; then

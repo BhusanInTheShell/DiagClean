@@ -36,6 +36,8 @@ cat > "$APP/Contents/Info.plist" <<PLIST
     <string>DiagClean</string>
     <key>CFBundleExecutable</key>
     <string>DiagClean</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
     <key>CFBundleIdentifier</key>
     <string>$BUNDLE_ID</string>
     <key>CFBundlePackageType</key>
@@ -55,6 +57,11 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 PLIST
 
 printf 'APPL????' > "$APP/Contents/PkgInfo"
+if [[ -f "$ROOT/Resources/AppIcon.icns" ]]; then
+    cp "$ROOT/Resources/AppIcon.icns" "$APP/Contents/Resources/AppIcon.icns"
+else
+    echo "    warning: Resources/AppIcon.icns missing — run Scripts/make-icon.py"
+fi
 
 # Ad-hoc signature so the app runs locally. Release builds will re-sign with a
 # Developer ID identity and staple a notarisation ticket; this is only enough to
