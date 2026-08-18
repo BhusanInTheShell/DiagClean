@@ -20,6 +20,7 @@ Sources/DiagCleanKit/    all logic — no SwiftUI, no AppKit, fully testable
   Clean/                 targets, scanner, and the single executor that deletes
   Uninstall/             app lister, leftover matching, and the single executor that trashes
   Analyze/               directory walker, the denylist guard, and single-item removal
+  Status/                native counters, the rate arithmetic, and health thresholds
   Audit/                 the run log
 Sources/DiagCleanApp/    SwiftUI, deliberately thin
 Tests/DiagCleanKitTests/ real temp directories, real symlinks, no filesystem fakes
@@ -27,7 +28,7 @@ Tests/DiagCleanKitTests/ real temp directories, real symlinks, no filesystem fak
 
 ## Status
 
-**Clean**, **Uninstall** and **Analyze** are built. Status, Optimize and Diagnostics
+**Status**, **Clean**, **Uninstall** and **Analyze** are built. Optimize and Diagnostics
 appear in the sidebar with a description of what they'll do, and are available in the CLI
 today.
 
@@ -104,6 +105,46 @@ item's original location so Finder's Put Back actually works. The CLI moves file
 `~/.Trash` by hand and loses that, which makes its "recoverable" more theoretical than
 it sounds.
 
+### Status
+
+Status is read-only, so the risk is not destruction — it is quietly reporting the wrong
+number. Two things follow from that.
+
+**Everything comes from a direct system call**, not from parsing a command's output. The
+CLI spawns `iostat`, `vm_stat`, `pmset`, `netstat` and `ps` for a single reading; a
+dashboard refreshing every two seconds would be launching five processes a tick all day,
+and a human-readable table is a format that can change underneath you. `host_statistics`,
+`getloadavg`, `getifaddrs`, `IOPSCopyPowerSourcesInfo` and `proc_pidinfo` are what those
+tools use themselves. Verified against the system's own numbers: our CPU figure reads
+2.6% where `top` reports 2.59% busy.
+
+**Free disk space is reported the way the user sees it.** `volumeAvailableCapacityForImportantUsage`
+counts space macOS can reclaim on demand, and is what Finder and System Settings show. The
+CLI reports the raw figure instead, which on the development machine reads 4 GB lower —
+a tool that disagrees with Finder looks broken even when it is being precise. The
+purgeable difference is named on the card rather than left as a mystery.
+
+The rate arithmetic lives in `StatusCalculator`, pure and free of any system call, because
+that is where a dashboard actually goes wrong: subtracting two counters when one has
+wrapped, when no time has passed, or when a process did not exist a moment ago is how a
+status view ends up claiming 4000% CPU or crediting a just-launched app with every
+nanosecond it has ever used. All of it is testable without a machine in any state.
+
+Where the machine will not answer, it says so instead of substituting a zero. macOS
+refuses task info for another user's processes without elevation — about 40% of them on a
+normal machine, all system daemons — so the busiest-processes list reports the count it
+could not read. A list quietly missing a third of the machine will eventually mislead
+somebody hunting a runaway daemon.
+
+Health verdicts prefer the signal that means something: macOS's own memory pressure over
+raw used-percentage, since a healthy Mac routinely sits above 80% because unused RAM is
+wasted RAM. Disk is judged on absolute free space with proportion only able to escalate
+that verdict — a 4 TB disk at 95% full has 200 GB free and is fine.
+
+The menu bar item is opt-in and off by default. It takes a strip of screen the user did
+not offer, so it is something they turn on. Sampling stops whenever nothing is displaying
+it, so the app is never quietly polling behind a hidden window.
+
 ### Analyze
 
 Analyze is the one feature that can reach anywhere on the disk rather than into a fixed
@@ -159,7 +200,7 @@ previous cleanups would be exactly the wrong behaviour.
 
 ## Testing
 
-111 tests, weighted heavily toward the paths where a bug costs somebody their data. They
+135 tests, weighted heavily toward the paths where a bug costs somebody their data. They
 run against real temp directories with real symlinks rather than a filesystem fake —
 case-insensitive volumes, symlinks and permission errors are precisely the things a
 hand-written fake gets subtly wrong, agreeing with the code under test while both are

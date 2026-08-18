@@ -22,6 +22,8 @@ struct RootView: View {
                 UninstallView()
             case .analyze:
                 AnalyzeView()
+            case .status:
+                StatusView()
             default:
                 ComingSoonView(section: selection)
             }
