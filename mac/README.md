@@ -22,6 +22,7 @@ Sources/DiagCleanKit/    all logic — no SwiftUI, no AppKit, fully testable
   Analyze/               directory walker, the denylist guard, and single-item removal
   Status/                native counters, the rate arithmetic, and health thresholds
   Diagnostics/           collectors, redaction, and the single HTML renderer
+  Optimize/              the action catalogue and the runner that reports real exit codes
   Audit/                 the run log
 Sources/DiagCleanApp/    SwiftUI, deliberately thin
 Tests/DiagCleanKitTests/ real temp directories, real symlinks, no filesystem fakes
@@ -29,9 +30,8 @@ Tests/DiagCleanKitTests/ real temp directories, real symlinks, no filesystem fak
 
 ## Status
 
-**Status**, **Clean**, **Uninstall**, **Analyze** and **Diagnostics** are built. Optimize
-appears in the sidebar with a description of what it will do, and is available in the CLI
-today.
+All six sections are built: **Status**, **Clean**, **Uninstall**, **Analyze**,
+**Optimize** and **Diagnostics**.
 
 ## Safety model
 
@@ -182,6 +182,34 @@ The menu bar item is opt-in and off by default. It takes a strip of screen the u
 not offer, so it is something they turn on. Sampling stops whenever nothing is displaying
 it, so the app is never quietly polling behind a hidden window.
 
+### Optimize
+
+Optimize changes system state without deleting anything, so the honesty question moves
+from "what will this destroy" to "what will the person sitting at this machine notice".
+Every action carries a side-effect line the CLI does not have. "Restarts Finder" reads as
+harmless right up until it closes the twelve windows somebody was working in, so the row
+says exactly that, and says it on the row rather than burying it in the confirmation.
+
+Only quiet, unprivileged actions are ticked by default; anything the user will notice is
+a decision they make rather than one they inherit. The confirmation shows the exact
+commands — a technician about to restart somebody's Finder is entitled to see
+`killall Finder` before it happens rather than take it on trust.
+
+Success is the command's real exit status, never the assumption that running it worked.
+That is not academic: `killall -HUP mDNSResponder` as an ordinary user prints "No matching
+processes belonging to you were found" and exits 1, so a tool that assumed success would
+report a flushed DNS cache having flushed nothing. Every command in a multi-command action
+must succeed — a DNS cache cleared but a resolver never signalled is a failure dressed as
+a fix.
+
+**DiagClean ships no privilege-escalation path**, deliberately. Prompting for an admin
+password and running a shell as root is security-sensitive machinery, and shipping one
+that has not been properly exercised is worse than shipping a smaller feature. Flush DNS
+and Rebuild Spotlight need root, so they are listed, labelled and left unavailable, with
+the CLI named as the way to run them — rather than offered as a checkbox certain to fail.
+Which actions need root was established by running them on a real Mac and reading the exit
+codes, not by guessing.
+
 ### Analyze
 
 Analyze is the one feature that can reach anywhere on the disk rather than into a fixed
@@ -237,7 +265,7 @@ previous cleanups would be exactly the wrong behaviour.
 
 ## Testing
 
-157 tests, weighted heavily toward the paths where a bug costs somebody their data. They
+172 tests, weighted heavily toward the paths where a bug costs somebody their data. They
 run against real temp directories with real symlinks rather than a filesystem fake —
 case-insensitive volumes, symlinks and permission errors are precisely the things a
 hand-written fake gets subtly wrong, agreeing with the code under test while both are
