@@ -1,17 +1,19 @@
 import Foundation
 
-/// The built-in, non-overridable veto list. Nothing in configuration can remove an
+/// The built-in, non-overridable veto lists. Nothing in configuration can remove an
 /// entry here; user configuration can only add more on top.
 ///
-/// Scoped to places that hold irreplaceable user data or credentials — not to broad
-/// system roots. Broad roots are the *ancestors* of directories Clean legitimately
-/// needs to reach (`~/Library/Caches` sits under `~/Library`, which sits under the
-/// home directory), so protecting them would either break every target or, worse,
-/// invite someone to carve exceptions back out. Real scoping comes from each target's
-/// narrow allowed-roots list; this exists purely so a bug in one of those lists still
-/// can't reach anything that matters.
+/// Split into two tiers because Clean and Uninstall have genuinely different remits.
+/// Clean must never touch app *data* — preferences, containers, saved state — because
+/// nothing it does is worth losing somebody's settings over. Uninstall exists precisely
+/// to remove those things for one named app. A single shared list would either break
+/// Uninstall or quietly widen what Clean can reach, and the second failure is the one
+/// nobody would notice.
 public enum ProtectedPaths {
-    public static func builtIn(for user: UserPaths) -> [String] {
+
+    /// Off limits to everything, no exceptions, in every feature. Irreplaceable data,
+    /// credentials, and the record of what this tool has already done.
+    public static func core(for user: UserPaths) -> [String] {
         [
             // Irreplaceable personal data.
             user.inHome("Desktop"),
@@ -37,17 +39,27 @@ public enum ProtectedPaths {
             user.inHome(".ssh"),
             user.inHome(".gnupg"),
 
-            // App state that is not cache: mail stores, containers, preferences.
-            user.inHome("Library", "Containers"),
-            user.inHome("Library", "Group Containers"),
+            // Mail and message stores are documents in everything but name.
             user.inHome("Library", "Mail"),
             user.inHome("Library", "Messages"),
-            user.inHome("Library", "Preferences"),
-            user.inHome("Library", "Safari"),
 
-            // DiagClean's own audit trail. A cleanup that erases the record of previous
-            // cleanups is exactly the wrong behaviour for a tool meant to be defensible.
+            // DiagClean's own audit trail. A run that erases the record of previous
+            // runs is exactly the wrong behaviour for a tool meant to be defensible.
             user.appSupportDirectory,
+        ]
+    }
+
+    /// Everything in `core`, plus the app-data directories Clean has no business in.
+    /// Uninstall deliberately does not apply these: removing one app's container is the
+    /// entire point of uninstalling it.
+    public static func forClean(for user: UserPaths) -> [String] {
+        core(for: user) + [
+            user.inHome("Library", "Containers"),
+            user.inHome("Library", "Group Containers"),
+            user.inHome("Library", "Preferences"),
+            // ~/Library/Safari is browsing history and bookmarks; the Safari *cache*
+            // lives under ~/Library/Caches and is fair game.
+            user.inHome("Library", "Safari"),
         ]
     }
 }

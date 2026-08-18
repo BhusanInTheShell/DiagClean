@@ -18,11 +18,13 @@ struct RootView: View {
             switch selection {
             case .clean:
                 CleanView()
+            case .uninstall:
+                UninstallView()
             default:
                 ComingSoonView(section: selection)
             }
         }
-        .frame(minWidth: 820, minHeight: 560)
+        .frame(minWidth: 1020, minHeight: 600)
     }
 }
 

@@ -11,7 +11,7 @@ struct DiagCleanApp: App {
                 .preferredColorScheme(.dark)
         }
         .windowToolbarStyle(.unified)
-        .defaultSize(width: 900, height: 620)
+        .defaultSize(width: 1040, height: 680)
         .commands {
             // Nothing here creates documents, so the New/Open items would be dead
             // weight in the menu bar.

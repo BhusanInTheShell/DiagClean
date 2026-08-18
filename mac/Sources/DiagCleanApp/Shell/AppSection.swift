@@ -41,7 +41,7 @@ enum AppSection: String, CaseIterable, Identifiable, Hashable {
     }
 
     var isImplemented: Bool {
-        self == .clean
+        self == .clean || self == .uninstall
     }
 
     /// Shown on the placeholder screen. Says what the section will do, so the sidebar

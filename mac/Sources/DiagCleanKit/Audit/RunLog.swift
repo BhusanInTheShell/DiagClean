@@ -23,12 +23,16 @@ public struct RunLog: Sendable {
         self.init(directory: user.logsDirectory)
     }
 
-    public var currentLogFileURL: URL {
+    public var currentLogFileURL: URL { logFileURL(prefix: "clean") }
+
+    public var currentUninstallLogFileURL: URL { logFileURL(prefix: "uninstall") }
+
+    private func logFileURL(prefix: String) -> URL {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd"
         formatter.locale = Locale(identifier: "en_US_POSIX")
         return URL(fileURLWithPath: directory)
-            .appendingPathComponent("clean-\(formatter.string(from: now())).log")
+            .appendingPathComponent("\(prefix)-\(formatter.string(from: now())).log")
     }
 
     @discardableResult
@@ -51,9 +55,36 @@ public struct RunLog: Sendable {
         return append(text)
     }
 
-    private func append(_ text: String) -> URL? {
+    @discardableResult
+    public func record(plan: UninstallPlan, report: UninstallReport) -> URL? {
+        var text = ""
+        text += "---- Uninstall run at \(Self.timestamp(report.startedAt)) by \(NSUserName()) on \(Host.current().localizedName ?? "unknown") ----\n"
+        text += "app: \(plan.app.name) \(plan.app.version) (\(plan.app.bundleIdentifier)) at \(plan.app.path)\n"
+        text += "planned: \(plan.itemCount) items, \(ByteFormat.string(plan.totalBytes))\n"
+        text += "moved to Trash: \(report.appRemoved ? "bundle + " : "")\(report.leftoversRemoved) leftover(s), \(ByteFormat.string(report.bytesFreed))"
+        text += report.wasCancelled ? " (cancelled partway)\n" : "\n"
+
+        if plan.includeApp {
+            let state = report.appRemoved ? "trashed" : "FAILED "
+            text += "  \(state) [bundle]    \(ByteFormat.string(plan.app.sizeBytes).padded(to: 10)) \(plan.app.path)\n"
+        }
+        for item in plan.leftovers {
+            let state = report.failures.contains { $0.path == item.path } ? "FAILED " : "trashed"
+            // The confidence tier is recorded too: if a removal is ever questioned, the
+            // useful question is whether it was a certain match or a judgement call.
+            text += "  \(state) [\(item.confidence.rawValue)] \(ByteFormat.string(item.sizeBytes).padded(to: 10)) \(item.path)\n"
+        }
+        for failure in report.failures {
+            text += "  reason: \(failure.path) — \(failure.reason)\n"
+        }
+        text += "\n"
+
+        return append(text, to: currentUninstallLogFileURL)
+    }
+
+    private func append(_ text: String, to url: URL? = nil) -> URL? {
         guard let data = text.data(using: .utf8) else { return nil }
-        let url = currentLogFileURL
+        let url = url ?? currentLogFileURL
 
         do {
             try FileManager.default.createDirectory(

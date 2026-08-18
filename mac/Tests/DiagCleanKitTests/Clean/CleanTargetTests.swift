@@ -211,7 +211,7 @@ struct CleanTargetTests {
     func protectedListCoversPersonalDirectories() throws {
         let workspace = try TempWorkspace()
         let user = UserPaths(home: try workspace.makeDirectory("home"))
-        let protected = ProtectedPaths.builtIn(for: user)
+        let protected = ProtectedPaths.forClean(for: user)
 
         for name in ["Desktop", "Documents", "Downloads", "Pictures", "Movies", "Music"] {
             #expect(protected.contains(user.inHome(name)), "\(name) must be protected")

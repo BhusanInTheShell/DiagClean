@@ -33,7 +33,7 @@ public struct CleanScanner: Sendable {
         extraProtectedPaths: [String] = [],
         resolver: PathResolving = LivePathResolver()
     ) -> [CleanTarget] {
-        let protected = ProtectedPaths.builtIn(for: user) + extraProtectedPaths
+        let protected = ProtectedPaths.forClean(for: user) + extraProtectedPaths
         return [
             TemporaryFilesTarget(
                 tempRoot: TemporaryFilesTarget.currentUserTempRoot(),
